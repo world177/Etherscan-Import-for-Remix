@@ -23,6 +23,284 @@
 
 			}
 
+			ContractRequest.REQUEST_NOT_ATTEMPTED = 0 << 0;
+			ContractRequest.REQUEST_RUNNING = 1 << 0;
+			ContractRequest.REQUEST_SUCCESSFUL = 1 << 1;
+			ContractRequest.REQUEST_FAILED = 1 << 2;
+			
+			function ContractRequest(address) {
+				
+				this.state = ContractRequest.REQUEST_NOT_ATTEMPTED;
+				this.address = address;
+				this.attempts = 0;
+				this.lastAPIResult = "";
+				
+				this.lastParsedResult = {};
+				this.contractData = {};
+				
+				// all results from the api are saved with the corresponding attempt number
+				this.apiResults = [];
+				
+				this.runRequest = async function() {
+					
+					try {
+				
+						this.state = ContractRequest.REQUEST_RUNNING;
+						this.attempts++; 
+						
+						this.lastAPIResult = await requestForContractFromEtherscan(this);
+						
+						this.apiResults[this.attempts - 1] = this.lastAPIResult;
+						
+						if(this.lastAPIResult.failedWebRequest) {
+						
+							this.state = ContractRequest.REQUEST_FAILED;
+						
+						} else {
+						
+							this.lastParsedResult = JSON.parse(this.lastAPIResult.webRequestResult);
+							
+							if(this.lastParsedResult.status == 1) {
+							
+								this.contractData = this.lastParsedResult.result[0];
+								
+								// fix source code format. 
+								//
+								// if it starts with a bracket, there are multiple source code files
+								if(this.contractData.SourceCode[0] == "{") {
+								
+									this.contractData.SourceCode = JSON.parse(this.contractData.SourceCode.substring(1, this.contractData.SourceCode.length - 1));
+								
+								// only one source code file. this just makes the format exactly the same as if it had multiple sources.
+								} else {
+									
+									let temp = {};
+								
+									temp.sources = {};
+									
+									let tempSourceObj = {};
+									tempSourceObj.content = this.contractData.SourceCode;
+									
+									temp.sources[this.contractData.ContractName + ".sol"] = tempSourceObj;
+								
+									this.contractData.SourceCode = temp;
+								
+								}
+								
+								// fix abi format
+								this.contractData.ABI = JSON.parse(this.contractData.ABI);
+							
+								this.state = ContractRequest.REQUEST_SUCCESSFUL;
+							
+							} else {
+							
+								this.state = ContractRequest.REQUEST_FAILED;
+							
+							}
+						
+						}
+						
+					} catch(e) {
+						
+						this.apiResults[this.attempts - 1] = "Unexpected Error: " + e;
+						
+						this.state = ContractRequest.REQUEST_FAILED;
+					
+					}
+					
+					return this.state;
+				
+				}
+				
+				this.getSource = function() {
+					
+					let source = {};
+					
+					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					
+						source = this.contractData.SourceCode;
+					
+					} else {
+					
+						throw "Error: Contract request is not complete!";
+					
+					}
+					
+					return source;
+				
+				}
+				
+				this.isProxy = function() {
+					
+					let isProxy = false;
+					
+					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					
+						isProxy = this.contractData.Proxy == 1;
+					
+					} else {
+					
+						throw "Error: Contract request is not complete!";
+					
+					}
+					
+					return isProxy;
+				
+				}
+				
+				this.getAttempts = function() {
+				
+					return this.attempts;
+				
+				}
+				
+				this.getImplementationAddressForProxy = function() {
+					
+					let impl = "";
+					
+					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					
+						if(this.isProxy()) {
+						
+							impl = this.contractData.Implementation;
+						
+						} else {
+						
+							throw "Error: Contract is not a proxy contract.";
+						
+						}
+					
+					} else {
+					
+						throw "Error: Contract request is not complete!";
+					
+					}
+					
+					return impl;
+				
+				}
+			
+				
+				this.getABI = function() {
+					
+					let ABI = {};
+					
+					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					
+						ABI = this.contractData.ABI;
+					
+					} else {
+					
+						throw "Error: Contract request is not complete!";
+					
+					}
+					
+					return ABI;
+				
+				}
+				
+			
+				this.getStatusDescription = function() {
+				
+					let description = "";
+				
+					switch(this.state) {
+					
+						case ContractRequest.REQUEST_NOT_ATTEMPTED:
+							description = "Not started";
+							break;
+							
+						case ContractRequest.REQUEST_RUNNING:
+							description = "Running";
+							break;
+							
+						case ContractRequest.REQUEST_SUCCESSFUL:
+							description = "Retrieved";
+							break;
+							
+						case ContractRequest.REQUEST_FAILED:
+							description = "Failed";
+							break;
+					
+					}
+				
+					return description;
+				
+				}
+
+				return this;
+			
+			}
+			
+			// The following two addresses have different structures in return results.
+			
+			// 0x66017d22b0f8556afdd19fc67041899eb65a21bb
+			// 0xBB9bc244D798123fDe783fCc1C72d3Bb8C189413
+			function requestForContractFromEtherscan(contractRequestObject) {
+			
+				let contractAddress = contractRequestObject.address;
+				
+				let returnResult = {};
+				
+				returnResult.failedWebRequest = false;
+				returnResult.webRequestResult = "";
+			
+				return new Promise(function(resolve, reject) {
+				
+					try {
+			
+						// it doesn't seem possible to increase the limit beyond 20.
+						let address = new URL("https://api.etherscan.io/api?module=contract&action=getsourcecode&address=" + contractAddress + "&apikey=YourApiKeyToken"); 
+				
+						let xmlHttp = new XMLHttpRequest();
+						
+						xmlHttp.onreadystatechange = function() { 
+						
+							if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+								
+								returnResult.failedWebRequest = false;
+								returnResult.webRequestResult = xmlHttp.responseText;
+								
+								
+								resolve(returnResult);
+								
+							} else if(xmlHttp.readyState == 4) {
+								
+								returnResult.failedWebRequest = true;
+								returnResult.webRequestResult = "Received a web status code that was not 200.";
+								
+								reject(returnResult);
+								
+							}
+								
+						}
+						
+						xmlHttp.addEventListener('error', function(event) {
+							
+							returnResult.failedWebRequest = true;
+							returnResult.webRequestResult = JSON.stringify(event);
+							
+							reject(returnResult);
+							
+						});
+						
+						xmlHttp.open("GET", address, true); 
+						xmlHttp.send(null);
+						
+					} catch(e) {
+						
+						returnResult.failedWebRequest = true;
+						returnResult.webRequestResult = e;
+						
+						reject(returnResult);
+					
+					}
+				
+				
+				});
+			
+			}
+
 
 			function SimpleEtherscanContractClient() {
 				
