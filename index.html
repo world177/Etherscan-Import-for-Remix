@@ -353,25 +353,49 @@
 
 
 	<div class="container">
+	<div class="card mb-3 mt-2"><div class="card-body">
+	
+
+			<div class="row mb-3"><div class="col-sm-12">
+		<h6>Status</h6> <div class="d-flex align-items-center">  <small> Running</small>  	<div class="spinner-border ms-auto ml-3"  style="width: 1.2rem; height: 1.2rem;" role="status" aria-hidden="true"></div>	</div>
+		</div></div>
+		
+				<div class="row"><div class="col-sm-12">
+		<h6>Task </h6>  <small> Waiting on API cooldown</small>  		</div>
+		
+
+
+		
+		
+		</div></div>
+	
+	
 	
 
 
+
+
+
+</div>
+	
+
+<h6 class="mb-3 ml-1 mt-1">Import a Contract</h6>
 <div class="card mb-3">
   <div class="card-header">
   
   
     <ul class="nav nav-pills card-header-pills nav-fill">
       <li class="nav-item">
-        <a class="nav-link bg-secondary active" href="#">Import</a>
+        <a class="nav-link bg-secondary active btn-sm" href="#">Import</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="#">Settings</a>
+        <a class="nav-link btn-sm" href="#">Settings</a>
       </li>
     </ul>
   </div>
   <div class="card-body">
   
-	<p class="mb-2">Enter the address of a contract on Etherscan to attempt to import it into Remix</p>
+	<p class="mb-2"><small>Enter the address of a contract on Etherscan to attempt to import it into Remix</small></p>
   
     <div class="form-group mb-2 mt-0">
     <label for="exampleFormControlSelect1">Network</label>
@@ -389,33 +413,57 @@
     <input type="email" class="form-control" id="exampleInputEmail1" placeholder="0x.....">
   </div>
   
-  <button type="submit" class="btn btn-primary btn-block">Submit</button>
+  <button type="submit" class="btn btn-primary btn-block btn-sm">Request</button>
   </div>
   
   
 </div>
 
-
-
-<div class="card mb-3">
-
-	<div class="card-header">Contracts for Import</div>
-	
-	<div class="card-body">
-	
+<h6 class="mb-3 ml-1 mt-1">Contracts for Import</h6>
 	
 		<div class="accordion" id="accordionExample">
   <div class="card border border-1 mb-1">
     <div class="card-header mb-0" id="headingOne">
       <div class="mb-0">
         <button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-        0x9814542f4230ab166efef3363a2d85e20d8708c7
+        #0001: 0x9814542f4230ab166efef3363a2d85e20d8708c7
         </button>
       </div>
     </div>
 
     <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordionExample">
       <div class="card-body">
+      <div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
+		<div class="row mb-3"><div class="col-sm-12">
+		<h6>Status</h6><small>Not yet requested</small>
+		</div></div>
+				<div class="row"><div class="col-sm-12">
+		<h6 class="mb-3">Storage Location</h6><small>  
+		
+		<textarea class="form-control" id="exampleFormControlTextarea1" rows="3" disabled>/etherscan/current_job/0x9814542f4230ab166efef3363a2d85e20d8708c7</textarea></small>
+		</div></div>
+		
+		
+		
+	
+		</div>
+    </div>
+  </div>
+  
+    <div class="card border border-1 mb-1">
+    <div class="card-header mb-0" id="headingOne">
+      <div class="mb-0">
+        <button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne2" aria-expanded="false" aria-controls="collapseOne2">
+        0x9814542f4230ab166efef3363a2d85e20d8708c7
+        </button>
+      </div>
+    </div>
+
+    <div id="collapseOne2" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+      <div class="card-body">
+	  <div class="alert alert-success" role="alert">
+  <small>This contract was successfully imported!</small>
+</div>
       <div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
 		<div class="row"><div class="col-sm-12">
 		<h6>Status</h6><small>Not yet requested</small>
@@ -426,68 +474,40 @@
 		</div>
     </div>
   </div>
-  <div class="card">
-    <div class="card-header" id="headingTwo">
-      <h5 class="mb-0">
-        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-          Collapsible Group Item #2
+    
+    <div class="card border border-1 mb-3">
+    <div class="card-header mb-0" id="headingOne">
+      <div class="mb-0">
+        <button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne3" aria-expanded="false" aria-controls="collapseOne3">
+        0x9814542f4230ab166efef3363a2d85e20d8708c7
         </button>
-      </h5>
-    </div>
-    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionExample">
-      <div class="card-body">
-        Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
       </div>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-header" id="headingThree">
-      <h5 class="mb-0">
-        <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-          Collapsible Group Item #3
-        </button>
-      </h5>
-    </div>
-    <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionExample">
+
+    <div id="collapseOne3" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
       <div class="card-body">
-        Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-      </div>
-    </div>
-  </div>
+	  
+	  <div class="alert alert-danger" role="alert">
+	  <small>This contract's source code was not available on Etherscan</small>
 </div>
-	
-	
-	
-	
-		<div class="card">
+	  
+	  
+      <div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
+		<div class="row mb-3"><div class="col-sm-12">
+		<h6>Status</h6><small>Not yet requested</small>
+		</div></div>
 		
-			<small class="card-header border border-0">0x9814542f4230ab166efef3363a2d85e20d8708c7</small>
+		<button class="btn btn-sm btn-danger btn-block">Retry</button>
 		
+		
+	
 		</div>
+    </div>
+  </div>
+  
+</div>
 	
-	</div>
 
-</div>
-
-
-	<div class="card mb-3"><div class="card-body">
-	<h6>Status</h6> <div class="mb-3">Running</div>
-<h6>Task</h6> Waiting on API cooldown</div></div>
-
-	<div class="card mb-3"><div class="card-header">Status - Complete</div><div class="card-body">
-<h6>Task</h6> Waiting on API cooldown</div></div>
-
-	<div class="card mb-3"><div class="card-header">Import Progress</div><div class="card-body">
-<div class="progress bg-light">
-  <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-</div></div></div>
-
-<div class="alert alert-success" role="alert">
-  The contract was successfully imported!
-</div>
-<div class="alert alert-danger" role="alert">
-	Error: This contract's source code was not available on Etherscan
-</div>
 
 <div class="card mb-3 border border-success"><div class="card-header">Import Log</div><div class="card-body">
 
