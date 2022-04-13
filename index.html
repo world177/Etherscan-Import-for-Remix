@@ -25,6 +25,7 @@
 			ContractRequest.REQUEST_RUNNING = 1 << 0;
 			ContractRequest.REQUEST_SUCCESSFUL = 1 << 1;
 			ContractRequest.REQUEST_FAILED = 1 << 2;
+			ContractRequest.SAVE_SUCCESSFUL = 1 << 3;
 			
 			function ContractRequest(address) {
 				
@@ -39,11 +40,19 @@
 				// all results from the api are saved with the corresponding attempt number
 				this.apiResults = [];
 				
+				this.UIUpdatesCallback = (dataForCallbackUpdates) => {};
+				
+				this.setUICallback = function(UICallback) {
+				
+					this.UIUpdatesCallback = UICallback;
+				
+				}
+				
 				this.saveSourcesToRemixClient = async function(remixClient, storeLocation) {
 				
 					let sources = {};
 					
-					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					if((this.state & ContractRequest.REQUEST_SUCCESSFUL) == ContractRequest.REQUEST_SUCCESSFUL) {
 					
 						sources = this.contractData.SourceCode;
 					
@@ -63,6 +72,8 @@
 						success = success & await client.fileManager.writeFile(storeLocation + "/" + this.address + "/" + filesInContract[i], sources[filesInContract[i]].content);
 					
 					}
+					
+					this.state = ContractRequest.SAVE_SUCCESSFUL | ContractRequest.REQUEST_SUCCESSFUL;
 					
 					return success;
 				
@@ -144,7 +155,7 @@
 					
 					let source = {};
 					
-					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					if((this.state & ContractRequest.REQUEST_SUCCESSFUL) == ContractRequest.REQUEST_SUCCESSFUL) {
 					
 						source = this.contractData.SourceCode;
 					
@@ -162,7 +173,7 @@
 					
 					let isProxy = false;
 					
-					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					if((this.state & ContractRequest.REQUEST_SUCCESSFUL) == ContractRequest.REQUEST_SUCCESSFUL) {
 					
 						isProxy = this.contractData.Proxy != 0;
 					
@@ -186,7 +197,7 @@
 					
 					let impl = "";
 					
-					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					if((this.state & ContractRequest.REQUEST_SUCCESSFUL) == ContractRequest.REQUEST_SUCCESSFUL) {
 					
 						if(this.isProxy()) {
 						
@@ -213,7 +224,7 @@
 					
 					let ABI = {};
 					
-					if(this.state == ContractRequest.REQUEST_SUCCESSFUL) {
+					if((this.state & ContractRequest.REQUEST_SUCCESSFUL) == ContractRequest.REQUEST_SUCCESSFUL) {
 					
 						ABI = this.contractData.ABI;
 					
@@ -277,7 +288,6 @@
 				
 					try {
 			
-						// it doesn't seem possible to increase the limit beyond 20.
 						let address = new URL("https://api.etherscan.io/api?module=contract&action=getsourcecode&address=" + contractAddress + "&apikey=YourApiKeyToken"); 
 				
 						let xmlHttp = new XMLHttpRequest();
@@ -330,23 +340,208 @@
 			}
 
 
-			function SimpleEtherscanContractClient() {
+			//let EtherscanRequestsWorker = {};
+			
+			EtherscanRequestsWorker.state = {};
+			
+			EtherscanRequestsWorker.state.WAITING_FOR_TASK = 0;
+			EtherscanRequestsWorker.state.RUNNING_TASK = 1;
+			EtherscanRequestsWorker.state.RUNNING_BUT_SLEEPING = 1 << 3;
+
+			function EtherscanRequestsWorker(remixPluginClient, followProxies) {
+			
+				this.requestsQueue = [];
+				this.remixPluginClient = remixPluginClient;
+				this.state = 0;
+				this.sleepTimeBetweenWebRequests = 5100;
+				this.followProxies = followProxies;
 				
-				this.getContract = function(address) {
+				this.UIUpdatesCallback = (dataForCallbackUpdates) => {};
 				
+				this.setUICallback = function(UICallback) {
 				
+					this.UIUpdatesCallback = UICallback;
+				
+				}
+				
+				this.hasQueueJobs = function() {
+				
+					return this.requestsQueue.length > 0;
+				
+				}
+				
+				this.updateState = function(newState) {
+				
+					this.state = newState;
+					this.UIUpdatesCallback(this);
+				
+				}
+				
+				this.runQueueJobs = async function() {
+				
+					this.updateState(EtherscanRequestsWorker.state.RUNNING_TASK);
+					
+					while(this.requestsQueue.length > 0) {
+					
+						let currentRequest = this.requestsQueue.pop();
+						
+						currentRequest.attemptsMade++;
+						
+						// if it **fails** to run the web request with success and save with success, 
+						if(!(await currentRequest.contractRequest.runRequest() == ContractRequest.REQUEST_SUCCESSFUL 
+							&& 	await currentRequest.contractRequest.saveSourcesToRemixClient(this.remixPluginClient, currentRequest.saveLocation))) {
+							
+							// add it back to the queue if the attempts aren't exhausted.
+							if(currentRequest.attemptsMade < currentRequest.attemptLimit) {
+							
+								this.requestsQueue.push(currentRequest);
+							
+							} else {
+							
+								// notify attempts are up
+							
+							}
+							
+						
+						// otherwise, it was successful, so a final check is needed to see if it is a proxy.
+						} else if(currentRequest.contractRequest.isProxy() && this.followProxies) {
+							
+							let implRequest = new ContractRequest(currentRequest.contractRequest.getImplementationAddressForProxy());
+							
+							// taking the callback function for ui updates from the first. (it's fine if it doesn't have one)
+							implRequest.setUICallback(currentRequest.contractRequest.UIUpdatesCallback);
+							
+							this.addRequest(implRequest, currentRequest.saveLocation, currentRequest.attemptLimit);
+						
+						}
+						
+						this.updateState(EtherscanRequestsWorker.state.RUNNING_BUT_SLEEPING);
+						await sleep(this.sleepTimeBetweenWebRequests);
+						this.updateState(EtherscanRequestsWorker.state.RUNNING_TASK);
+						
+					}
+					
+					this.updateState(EtherscanRequestsWorker.state.WAITING_FOR_TASK);
+				
+				}
+				
+				this.mainLoop = async function() {
+				
+					while(true) {
+					
+						if(this.hasQueueJobs()) {
+						
+							await this.runQueueJobs();
+						
+						}
+					
+						await sleep(200);
+					
+					}
+				
+				}
+				
+				this.start = function() {
+				
+					return this.mainLoop();
+				
+				}
+				
+				this.addRequest = async function(contractRequestObj, saveLocation, attemptLimit) {
+				
+					let job = {};
+					
+					job.attemptLimit = attemptLimit;
+					job.saveLocation = saveLocation;
+					job.contractRequest = contractRequestObj;
+					job.attemptsMade = 0;
+					
+					this.requestsQueue.push(job);
 				
 				}
 			
-				return this;
 			
 			}
 
 
 			let client = plugin_iframe.createClient();
 
-
-
+			let ImportContractUI = {}
+		
+			ImportContractUI.worker = new EtherscanRequestsWorker(client, true);
+			
+			ImportContractUI.addNewRequest = function() {
+			
+				ImportContractUI.reload();
+			
+				let contractToRequest = new ContractRequest(ImportContractUI.import.contractAddress.value);
+				
+				contractToRequest.setUICallback = ImportContractUI.forImport.requestContractUIUpdatesCallback;
+			
+				ImportContractUI.worker.addRequest(contractToRequest, ImportContractUI.import.saveLocation, ImportContractUI.import.attemptLimit);
+			
+			}
+			
+			
+			ImportContractUI.forImport = {};
+			ImportContractUI.forImport.issuedUIForContract = {};
+			
+			ImportContractUI.forImport.requestContractUIUpdatesCallback = function(data) {
+			
+				if(ImportContractUI.forImport.issuedUIForContract[data.address] != None) {
+				
+				
+				} else {
+				
+				
+				}
+			
+			}
+			
+			ImportContractUI.reload = function() {
+			
+				ImportContractUI.import.contractAddress = document.getElementById("importContractAddress");
+				ImportContractUI.import.importTab = document.getElementById("importContractImportTab");
+				ImportContractUI.import.settingsTab = document.getElementById("importContractSettingsTab");
+				ImportContractUI.import.cardBodyContent = document.getElementById("importContractCardBodyContent");
+			
+			}
+			
+			ImportContractUI.import = {};
+			ImportContractUI.reload();
+			
+			ImportContractUI.import.setActive = function(tabID) {
+			
+				ImportContractUI.reload();
+					
+				let activeTabClasses = "nav-link bg-secondary active btn-sm";
+				let inactiveTabClasses = "nav-link btn-sm";
+				
+				let tabs = [ImportContractUI.import.importTab, ImportContractUI.import.settingsTab];
+				
+				
+				let inject1 = "	<p class=\"mb-2\"><small>Enter the address of a contract on Etherscan to attempt to import it into Remix</small></p>      <div class=\"form-group mb-2 mt-0\">    <label for=\"importContractSelectNetwork\">Network</label>    <select class=\"form-control\" id=\"importContractSelectNetwork\" disabled>      <option>Ethereum Mainnet</option>      <option>2</option>      <option>3</option>      <option>4</option>      <option>5</option>    </select>  </div>  <div class=\"form-group\">    <label for=\"importContractAddress\">Contract Address</label>    <input type=\"text\" class=\"form-control\" id=\"importContractAddress\" placeholder=\"0x.....\">  </div>    <button type=\"submit\" class=\"btn btn-primary btn-block btn-sm\" onclick=\"ImportContractUI.addNewRequest()\">Request</button>      ";
+				let inject2 = "<div class=\"form-group\">    <label for=\"importContractApiKey\">Etherscan API Key</label>    <input type=\"text\" class=\"form-control\" id=\"importContractApiKey\" placeholder=\"Optional: Etherscan API Key\">  </div>      <div class=\"form-group\">    <label for=\"importContractStorageLocation\">Storage Location</label>    <input type=\"text\" class=\"form-control\" id=\"importContractStorageLocation\" placeholder=\"/etherscan/contracts\" value=\"/etherscan/contracts\">  </div>        <div class=\"form-group\">    <label for=\"importContractRetryAttempts\">Retry Attempts on Failure</label>    <input type=\"text\" class=\"form-control\" id=\"importContractRetryAttempts\" placeholder=\"3\" value=\"3\">  </div>"
+				
+				let injections = [inject1, inject2]
+				
+				for(let i = 0; i < tabs.length; i++) {
+				
+					tabs[i].classList.value = inactiveTabClasses;
+				
+				}
+				
+				tabs[tabID].classList.value = activeTabClasses;
+				
+				ImportContractUI.import.cardBodyContent.innerHTML = injections[tabID];
+			
+			}
+			
+			// importContractImportTab
+			// importContractSettingsTab
+			// importContractCardBodyContent
+			
+			ImportContractUI.worker.start();
 
 		</script>
 
@@ -378,6 +573,50 @@
 
 </div>
 	
+	<!---
+<h6 class="mb-3 ml-1 mt-1">Import a Contract</h6>
+<div class="card mb-3">
+  <div class="card-header">
+  
+  
+    <ul class="nav nav-pills card-header-pills nav-fill">
+      <li class="nav-item">
+        <a class="nav-link btn-sm" href="#" id="importContractImportTab">Import</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link bg-secondary active btn-sm" href="#" id="importContractSettingsTab">Settings</a>
+      </li>
+    </ul>
+  </div>
+  <div class="card-body" id="importContractCardBodyContent">
+  
+<div class="form-group">
+    <label for="importContractApiKey">Etherscan API Key</label>
+    <input type="text" class="form-control" id="importContractApiKey" placeholder="Optional: Etherscan API Key">
+  </div>
+  
+  
+  <div class="form-group">
+    <label for="importContractStorageLocation">Storage Location</label>
+    <input type="text" class="form-control" id="importContractStorageLocation" placeholder="/etherscan/contracts" value="/etherscan/contracts">
+  </div>
+  
+    
+  <div class="form-group">
+    <label for="importContractRetryAttempts">Retry Attempts on Failure</label>
+    <input type="text" class="form-control" id="importContractRetryAttempts" placeholder="3" value="3">
+  </div>
+
+  </div>
+  
+  
+</div>--->
+
+
+	
+	
+	
+	
 
 <h6 class="mb-3 ml-1 mt-1">Import a Contract</h6>
 <div class="card mb-3">
@@ -386,20 +625,20 @@
   
     <ul class="nav nav-pills card-header-pills nav-fill">
       <li class="nav-item">
-        <a class="nav-link bg-secondary active btn-sm" href="#">Import</a>
+        <a class="nav-link bg-secondary active btn-sm" href="#" onclick="event.preventDefault(); ImportContractUI.import.setActive(0)" id="importContractImportTab">Import</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link btn-sm" href="#">Settings</a>
+        <a class="nav-link btn-sm" onclick="event.preventDefault(); ImportContractUI.import.setActive(1)" href="#" id="importContractSettingsTab">Settings</a>
       </li>
     </ul>
   </div>
-  <div class="card-body">
-  
+  <div class="card-body" id="importContractCardBodyContent">
+
 	<p class="mb-2"><small>Enter the address of a contract on Etherscan to attempt to import it into Remix</small></p>
   
     <div class="form-group mb-2 mt-0">
-    <label for="exampleFormControlSelect1">Network</label>
-    <select class="form-control" id="exampleFormControlSelect1">
+    <label for="importContractSelectNetwork">Network</label>
+    <select class="form-control" id="importContractSelectNetwork" disabled>
       <option>Ethereum Mainnet</option>
       <option>2</option>
       <option>3</option>
@@ -409,15 +648,22 @@
   </div>
   
 <div class="form-group">
-    <label for="exampleInputEmail1">Contract Address</label>
-    <input type="email" class="form-control" id="exampleInputEmail1" placeholder="0x.....">
+    <label for="importContractAddress">Contract Address</label>
+    <input type="text" class="form-control" id="importContractAddress" placeholder="0x.....">
   </div>
   
-  <button type="submit" class="btn btn-primary btn-block btn-sm">Request</button>
+  <button type="submit" class="btn btn-primary btn-block btn-sm" onclick="ImportContractUI.addNewRequest()">Request</button>
+  
+  
+  
+  
   </div>
   
   
 </div>
+
+
+
 
 <h6 class="mb-3 ml-1 mt-1">Contracts for Import</h6>
 	
@@ -506,13 +752,6 @@
   </div>
   
 </div>
-	
-
-
-<div class="card mb-3 border border-success"><div class="card-header">Import Log</div><div class="card-body">
-
-test
-</div></div>
 
 
 
