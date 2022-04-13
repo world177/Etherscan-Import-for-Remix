@@ -339,8 +339,6 @@
 			
 			}
 
-
-			//let EtherscanRequestsWorker = {};
 			
 			EtherscanRequestsWorker.state = {};
 			
@@ -464,21 +462,33 @@
 			}
 
 
-			let client = plugin_iframe.createClient();
+
+			function HTMLElement(elementID) {
+			
+				this.elementID = elementID;
+				
+				this.e = function() {
+				
+					return document.getElementById(this.elementID);
+				
+				}
+				
+				this.setOnUpdate = function(callback) {
+				
+					return this;
+				
+				}
+			
+			
+				return this;
+			
+			}
 
 			let ImportContractUI = {}
-		
-			ImportContractUI.worker = new EtherscanRequestsWorker(client, true);
-			
+						
 			ImportContractUI.addNewRequest = function() {
 			
-				ImportContractUI.reload();
-			
-				let contractToRequest = new ContractRequest(ImportContractUI.import.contractAddress.value);
-				
-				contractToRequest.setUICallback = ImportContractUI.forImport.requestContractUIUpdatesCallback;
-			
-				ImportContractUI.worker.addRequest(contractToRequest, ImportContractUI.import.saveLocation, ImportContractUI.import.attemptLimit);
+				ImportContractUI.plugin.addNewRequest(ImportContractUI.import.contractAddress.e().value, ImportContractUI.forImport.requestContractUIUpdatesCallback);
 			
 			}
 			
@@ -488,7 +498,7 @@
 			
 			ImportContractUI.forImport.requestContractUIUpdatesCallback = function(data) {
 			
-				if(ImportContractUI.forImport.issuedUIForContract[data.address] != None) {
+				if(ImportContractUI.forImport.issuedUIForContract[data.address] != null) {
 				
 				
 				} else {
@@ -498,21 +508,75 @@
 			
 			}
 			
-			ImportContractUI.reload = function() {
+			ImportEtherscanContractPlugin.networks = {};
 			
-				ImportContractUI.import.contractAddress = document.getElementById("importContractAddress");
-				ImportContractUI.import.importTab = document.getElementById("importContractImportTab");
-				ImportContractUI.import.settingsTab = document.getElementById("importContractSettingsTab");
-				ImportContractUI.import.cardBodyContent = document.getElementById("importContractCardBodyContent");
+			ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET = 0;
+			
+			function ImportEtherscanContractPlugin(remixClient, defaultNetwork, defaultAPIKey, defaultStorageLocation, defaultRetryAttempts, workerUICallback) {
+
+				this.network = defaultNetwork;
+				this.APIKey = defaultAPIKey;
+				this.storageLocation = defaultStorageLocation;
+				this.retryAttempts = defaultRetryAttempts;
+				this.workerUICallback = workerUICallback;
+				
+				if(this.workerUICallback == null) 
+					this.workerUICallback = () => {};
+				
+				this.worker = new EtherscanRequestsWorker(client, true);
+				
+				
+				this.addNewRequest = function(requestAddress) {
+				
+					this.addNewRequest(requestAddress, () => {});
+				
+				}
+				
+
+				this.addNewRequest = function(requestAddress, callbackForUI) {
+				
+					this.addNewRequest(requestAddress, callbackForUI, this.storageLocation, this.retryAttempts);
+				
+				}
+				
+				// this is for internal requests and requests made outside of the UI that want to override the default settings. 
+				this.addNewRequest = function(requestAddress, storageLocation, retryAttempts, callbackForUI) {
+				
+					if(callbackForUI == null) {
+					
+						callbackForUI = () => {};
+					
+					}
+				
+					let contractToRequest = new ContractRequest(requestAddress);
+					
+					contractToRequest.setUICallback(callbackForUI);
+				
+					this.worker.addRequest(contractToRequest, storageLocation, retryAttempts);
+				
+				}
+				
+				this.worker.setUICallback(this.workerUICallback);
+				this.worker.start();
+			
+				return this;
 			
 			}
 			
+			
 			ImportContractUI.import = {};
-			ImportContractUI.reload();
+			
+			ImportContractUI.import.contractAddress = new HTMLElement("importContractAddress");
+			ImportContractUI.import.importTab = new HTMLElement("importContractImportTab");
+			ImportContractUI.import.settingsTab = new HTMLElement("importContractSettingsTab");
+			ImportContractUI.import.cardBodyContent = new HTMLElement("importContractCardBodyContent");
+			
+			ImportContractUI.import.contractAPIKey =  new HTMLElement("importContractApiKey");
+			ImportContractUI.import.contractStorageLocation = new HTMLElement("importContractStorageLocation");
+			ImportContractUI.import.contractRetryAttempts = new HTMLElement("importContractRetryAttempts");
+			
 			
 			ImportContractUI.import.setActive = function(tabID) {
-			
-				ImportContractUI.reload();
 					
 				let activeTabClasses = "nav-link bg-secondary active btn-sm";
 				let inactiveTabClasses = "nav-link btn-sm";
@@ -527,21 +591,22 @@
 				
 				for(let i = 0; i < tabs.length; i++) {
 				
-					tabs[i].classList.value = inactiveTabClasses;
+					tabs[i].e().classList.value = inactiveTabClasses;
 				
 				}
 				
-				tabs[tabID].classList.value = activeTabClasses;
+				tabs[tabID].e().classList.value = activeTabClasses;
 				
-				ImportContractUI.import.cardBodyContent.innerHTML = injections[tabID];
+				ImportContractUI.import.cardBodyContent.e().innerHTML = injections[tabID];
 			
 			}
 			
-			// importContractImportTab
-			// importContractSettingsTab
-			// importContractCardBodyContent
 			
-			ImportContractUI.worker.start();
+			let client = plugin_iframe.createClient();
+			
+			// client, network, apiKey, storageLocation, retryAttemptsOnFailure
+			ImportContractUI.plugin = new ImportEtherscanContractPlugin(client, ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET, "", "/etherscan/contracts", 3);
+			
 
 		</script>
 
