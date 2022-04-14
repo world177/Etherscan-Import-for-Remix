@@ -36,6 +36,23 @@
 				
 				this.lastParsedResult = {};
 				this.contractData = {};
+
+				// i didn't want to set the storage location on creation, because someone might want to make a 
+				// request + save then save again somewhere else. these are just strings with the location of successful saves
+				this.storedAtLocations = [];
+
+				
+				// if someone pulls the contract again after modifying a pulled contract,
+				// it will overwrite their work. saving a time is unique enough to prevent
+				// this from happening, and is also useful when looking directly at contract addresses
+				this.time = new Date().getTime();
+				
+				// be careful to cast or it will be wrong
+				// String(new Date(Number("0")).toLocaleString()).replaceAll(":", "_").replaceAll("/", "-").replaceAll(",", "")
+				
+				
+				// String(new Date().toLocaleString()).replaceAll(":", "_").replaceAll("/", "-").replaceAll(",", "")
+				// String(new Date().toUTCString()).replaceAll(":", "_")
 				
 				// all results from the api are saved with the corresponding attempt number
 				this.apiResults = [];
@@ -45,10 +62,46 @@
 				this.setUICallback = function(UICallback) {
 				
 					this.UIUpdatesCallback = UICallback;
+
+					this.UIUpdatesCallback(this);
 				
 				}
 				
 				this.saveSourcesToRemixClient = async function(remixClient, storeLocation) {
+
+
+					let dateString = String(new Date(Number(this.time)).toLocaleString()).replaceAll(":", "_").replaceAll("/", "-").replaceAll(",", "");
+
+					// in the future, i might add the ability to customize this. 
+					//
+					// the current format is { unixTime } / { formattedLocaleTime } / { address } 
+					// 
+					// the argument for this format is below
+					//
+					// 	leading with the initiated DateTime unix time
+					//		- helps with confusion related to address sort - "i remember requesting this one before that one, 
+					//			but don't remember what address that was"
+					//  	- automatically orders all saved contracts in this folder with a unique natural ID. this saves
+					//			someone who modifies a contract from accidentally writing over it if they request
+					//			a new version for comparison. 
+					//		- it forces a correct sort by creation date
+					//
+					//	followed by the actual formatted date
+					//		- it makes the order immediately obvious, and is helpful when it's been a while since reviewing a contract
+					//		- it prevents someone from confusing where the requested contract will be stored. ex. if they perceived
+					// 			the unix time as an id, the order might appear { id } / { address } / { time }. so they might believe
+					//			that future requests could end up with a different time under the address, which wouldn't be so bad,
+					//			however, i didn't want to do the small amount of work to make this reality when i like the this format more
+					//	
+					// 	and finally, followed by the address
+					//	- the address is important (to include) as the reason the contract was pulled is very likely related to activity
+					//		at the address. having it above the level of the contract in my opinion makes it easier to see
+					//  
+
+					// btw, yes, i know /*    */, but just like how // looks
+
+
+					let plannedStoreLocation = storeLocation + "/" + this.time + "/" + dateString + "/" + this.address;
 				
 					let sources = {};
 					
@@ -69,11 +122,17 @@
 					
 					for(let i = 0; i < filesInContract.length; i++) {
 					
-						success = success & await client.fileManager.writeFile(storeLocation + "/" + this.address + "/" + filesInContract[i], sources[filesInContract[i]].content);
+						success = success & await client.fileManager.writeFile(plannedStoreLocation + "/" + filesInContract[i], sources[filesInContract[i]].content);
 					
 					}
 					
-					this.state = ContractRequest.SAVE_SUCCESSFUL | ContractRequest.REQUEST_SUCCESSFUL;
+					if(success) {
+
+						this.state = ContractRequest.SAVE_SUCCESSFUL | ContractRequest.REQUEST_SUCCESSFUL;
+
+						this.storedAtLocations.push(plannedStoreLocation);
+
+					}
 					
 					return success;
 				
@@ -488,23 +547,74 @@
 						
 			ImportContractUI.addNewRequest = function() {
 			
-				ImportContractUI.plugin.addNewRequest(ImportContractUI.import.contractAddress.e().value, ImportContractUI.forImport.requestContractUIUpdatesCallback);
+				ImportContractUI.plugin.addNewRequest(ImportContractUI.import.contractAddress.e().value, ImportContractUI.requestedImport.requestContractUIUpdatesCallback);
 			
 			}
 			
 			
-			ImportContractUI.forImport = {};
-			ImportContractUI.forImport.issuedUIForContract = {};
+			ImportContractUI.requestedImport = {};
 			
-			ImportContractUI.forImport.requestContractUIUpdatesCallback = function(data) {
+			ImportContractUI.requestedImport.htmlInjectionLocation = new HTMLElement("accordionExample");
 			
-				if(ImportContractUI.forImport.issuedUIForContract[data.address] != null) {
+			// not actually going to use this function
+			ImportContractUI.requestedImport.injectIntoInjectionLocation = function(inject) {
+			
+				let current = ImportContractUI.requestedImport.htmlInjectionLocation.e().innerHTML;
+			
+				ImportContractUI.requestedImport.htmlInjectionLocation.e().innerHTML = inject + current;
+			
+			}
+			
+			ImportContractUI.requestedImport.issuedUI = {};
+			
+			ImportContractUI.requestedImport.requestContractUIUpdatesCallback = function(data) {
+			
+				if(ImportContractUI.requestedImport.issuedUI[data.address + String(data.time)] == null) {
 				
+					let newElementID = "importState" + String(Object.keys(ImportContractUI.requestedImport.issuedUI).length);
+					
+					ImportContractUI.requestedImport.issuedUI[data.address + String(data.time)] = new HTMLElement(newElementID);
+					
+					let injectLocation = ImportContractUI.requestedImport.htmlInjectionLocation.e();
+			
+					let injectionTemplate = `<div class="card border border-1 mb-1" id="` + newElementID + `">
+												<div class="card-header mb-0" id="` + newElementID +  "heading" + `">
+												  <div class="mb-0">
+													<button class="btn btn-link btn-sm btn-block text-truncate collapsed" id="` + newElementID +  "buttonHeading" + `" type="button" data-toggle="collapse" data-target="#` + newElementID +  "collapse" + `" aria-expanded="false" aria-controls="` + newElementID +  "collapse" + `">
+														` + data.address + `
+													</button>
+												  </div>
+												</div>
+
+												<div id="` + newElementID +  "collapse" + `" class="collapse" aria-labelledby="` + newElementID +  "heading" + `" data-parent="#accordionExample" style="">
+												  <div class="card-body">
+												  <div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small id="` + newElementID +  "addressC" + `">0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
+													<div class="row mb-3"><div class="col-sm-12">
+													<h6>Status</h6><small id="` + newElementID +  "status" + `">Not yet requested</small>
+													</div></div>
+															<div class="row"><div class="col-sm-12">
+													<h6 class="mb-3">Storage Location</h6><small>  
+													
+													<textarea class="form-control" id="` + newElementID +  "storage" + `" rows="3" disabled="">/etherscan/current_job/0x9814542f4230ab166efef3363a2d85e20d8708c7</textarea></small>
+													</div></div>
+													</div>
+												</div>
+											</div>`; 
+
+					injectLocation.innerHTML = injectionTemplate + injectLocation.innerHTML;
+				} 
 				
-				} else {
+				let current = ImportContractUI.requestedImport.issuedUI[data.address + String(data.time)];
 				
+				let heading = document.getElementById(current.elementID + "buttonHeading");
+				let status = document.getElementById(current.elementID + "status");
+				let storage = document.getElementById(current.elementID + "storage");
+				let addressC = document.getElementById(current.elementID + "addressC");
 				
-				}
+				heading.innerHTML = data.address;
+				status.innerHTML = data.getStatusDescription();
+				storage.innerHTML = "/etherscan/current_job/" // need to fix
+				addressC.innerHTML = data.address;
 			
 			}
 			
@@ -525,22 +635,14 @@
 				
 				this.worker = new EtherscanRequestsWorker(client, true);
 				
-				
-				this.addNewRequest = function(requestAddress) {
-				
-					this.addNewRequest(requestAddress, () => {});
-				
-				}
-				
-
 				this.addNewRequest = function(requestAddress, callbackForUI) {
 				
-					this.addNewRequest(requestAddress, callbackForUI, this.storageLocation, this.retryAttempts);
+					this.addNewRequestWithoutDefaults(requestAddress, this.storageLocation, this.retryAttempts, callbackForUI);
 				
 				}
 				
 				// this is for internal requests and requests made outside of the UI that want to override the default settings. 
-				this.addNewRequest = function(requestAddress, storageLocation, retryAttempts, callbackForUI) {
+				this.addNewRequestWithoutDefaults = function(requestAddress, storageLocation, retryAttempts, callbackForUI) {
 				
 					if(callbackForUI == null) {
 					
