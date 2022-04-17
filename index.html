@@ -12,253 +12,88 @@
 		<title>Import for Etherscan</title>
 	</head>
 	<body>
-		
-<script src="./js/remix/plugin/plugin_iframe.js"></script>
 
-<script src="./js/EtherscanContractImportPlugin/ContractRequest.js"></script>
-<script src="./js/EtherscanContractImportPlugin/EtherscanRequestsWorker.js"></script>
-<script src="./js/EtherscanContractImportPlugin/HTMLElement.js"></script>
-<script src="./js/EtherscanContractImportPlugin/ImportContractUI.js"></script>
-<script src="./js/EtherscanContractImportPlugin/ImportEtherscanContractPlugin.js"></script>
-<script src="./js/EtherscanContractImportPlugin/Utility.js"></script>
-
-		<script>
-
-
-
-
-
-
-
-			
-			let client = plugin_iframe.createClient();
-			
-			// client, network, apiKey, storageLocation, retryAttemptsOnFailure
-			ImportContractUI.plugin = new ImportEtherscanContractPlugin(client, ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET, "", "/etherscan/contracts", 3);
-			
-
-		</script>
-
-
-
-	<div class="container">
-	<div class="card mb-3 mt-2"><div class="card-body">
-	
-
-			<div class="row mb-3"><div class="col-sm-12">
-		<h6>Status</h6> <div class="d-flex align-items-center">  <small> Running</small>  	<div class="spinner-border ms-auto ml-3"  style="width: 1.2rem; height: 1.2rem;" role="status" aria-hidden="true"></div>	</div>
-		</div></div>
-		
-				<div class="row"><div class="col-sm-12">
-		<h6>Task </h6>  <small> Waiting on API cooldown</small>  		</div>
-		
-
-
-		
-		
-		</div></div>
-	
-	
-	
-
-
-
-
-
-</div>
-	
-	<!---
-<h6 class="mb-3 ml-1 mt-1">Import a Contract</h6>
-<div class="card mb-3">
-  <div class="card-header">
-  
-  
-    <ul class="nav nav-pills card-header-pills nav-fill">
-      <li class="nav-item">
-        <a class="nav-link btn-sm" href="#" id="importContractImportTab">Import</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link bg-secondary active btn-sm" href="#" id="importContractSettingsTab">Settings</a>
-      </li>
-    </ul>
-  </div>
-  <div class="card-body" id="importContractCardBodyContent">
-  
-<div class="form-group">
-    <label for="importContractApiKey">Etherscan API Key</label>
-    <input type="text" class="form-control" id="importContractApiKey" placeholder="Optional: Etherscan API Key">
-  </div>
-  
-  
-  <div class="form-group">
-    <label for="importContractStorageLocation">Storage Location</label>
-    <input type="text" class="form-control" id="importContractStorageLocation" placeholder="/etherscan/contracts" value="/etherscan/contracts">
-  </div>
-  
-    
-  <div class="form-group">
-    <label for="importContractRetryAttempts">Retry Attempts on Failure</label>
-    <input type="text" class="form-control" id="importContractRetryAttempts" placeholder="3" value="3">
-  </div>
-
-  </div>
-  
-  
-</div>--->
-
-
-	
-	
-	
-	
-
-<h6 class="mb-3 ml-1 mt-1">Import a Contract</h6>
-<div class="card mb-3">
-  <div class="card-header">
-  
-  
-    <ul class="nav nav-pills card-header-pills nav-fill">
-      <li class="nav-item">
-        <a class="nav-link bg-secondary active btn-sm" href="#" onclick="event.preventDefault(); ImportContractUI.import.setActive(0)" id="importContractImportTab">Import</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link btn-sm" onclick="event.preventDefault(); ImportContractUI.import.setActive(1)" href="#" id="importContractSettingsTab">Settings</a>
-      </li>
-    </ul>
-  </div>
-  <div class="card-body" id="importContractCardBodyContent">
-
-  
-  
-  </div>
-  
-  
-</div>
-
-
-
-<script>
-
-window.addEventListener('load', function () {
-	ImportContractUI.import.setActive(0);
-});
-
-</script>
-
-
-<h6 class="mb-3 ml-1 mt-1">Contracts for Import</h6>
-	
-	<div class="accordion" id="accordionExample">
-
-		<!---
-						<div class="card border border-1 mb-1">
-							<div class="card-header mb-0" id="headingOne">
-								<div class="mb-0">
-									<button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-										#0001: 0x9814542f4230ab166efef3363a2d85e20d8708c7
-									</button>
-								</div>
-							</div>
-
-							<div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordionExample">
-							<div class="card-body">
-							<div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
-							<div class="row mb-3"><div class="col-sm-12">
-							<h6>Status</h6><small>Not yet requested</small>
-							</div></div>
-							<div class="row"><div class="col-sm-12">
-							<h6 class="mb-3">Storage Location</h6><small>  
-
-							<textarea class="form-control" id="exampleFormControlTextarea1" rows="3" disabled>/etherscan/current_job/0x9814542f4230ab166efef3363a2d85e20d8708c7</textarea></small>
-							</div></div>
-
-
-
-
-							</div>
+		<div class="container">
+			<div class="card mb-3 mt-2">
+				<div class="card-body">
+					<div class="row mb-3">
+						<div class="col-sm-12">
+							<h6>
+								Status
+							</h6> 
+							<div class="d-flex align-items-center">  
+								<small> 
+									Running
+								</small>  	
+								<div class="spinner-border ms-auto ml-3" style="width: 1.2rem; height: 1.2rem;" role="status" aria-hidden="true">
+								</div>	
 							</div>
 						</div>
-
-						<div class="card border border-1 mb-1">
-						<div class="card-header mb-0" id="headingOne">
-						<div class="mb-0">
-						<button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne2" aria-expanded="false" aria-controls="collapseOne2">
-						0x9814542f4230ab166efef3363a2d85e20d8708c7
-						</button>
+					</div>
+					<div class="row">
+						<div class="col-sm-12">
+							<h6>
+								Task 
+							</h6>  
+							<small> 
+								Waiting on API cooldown
+							</small>  		
 						</div>
-						</div>
+					</div>
+				</div>
+			</div>
+				
 
-						<div id="collapseOne2" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
-						<div class="card-body">
-						<div class="alert alert-success" role="alert">
-						<small>This contract was successfully imported!</small>
-						</div>
-						<div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
-						<div class="row"><div class="col-sm-12">
-						<h6>Status</h6><small>Not yet requested</small>
-						</div></div>
+			<h6 class="mb-3 ml-1 mt-1">
+				Import a Contract
+			</h6>
 
+			<div class="card mb-3">
+				<div class="card-header">
+					<ul class="nav nav-pills card-header-pills nav-fill">
+						<li class="nav-item">
+							<a class="nav-link bg-secondary active btn-sm" href="#" onclick="event.preventDefault(); ImportContractUI.import.setActive(0)" id="importContractImportTab">
+								Import
+							</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link btn-sm" onclick="event.preventDefault(); ImportContractUI.import.setActive(1)" href="#" id="importContractSettingsTab">
+								Settings
+							</a>
+						</li>
+					</ul>
+				</div>
+				<div class="card-body" id="importContractCardBodyContent">
 
-
-						</div>
-						</div>
-						</div>
-
-						<div class="card border border-1 mb-3">
-						<div class="card-header mb-0" id="headingOne">
-						<div class="mb-0">
-						<button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne3" aria-expanded="false" aria-controls="collapseOne3">
-						0x9814542f4230ab166efef3363a2d85e20d8708c7
-						</button>
-						</div>
-						</div>
-
-						<div id="collapseOne3" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
-						<div class="card-body">
-
-						<div class="alert alert-danger" role="alert">
-						<small>This contract's source code was not available on Etherscan</small>
-						</div>
+				</div>
+			</div>
 
 
-						<div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
-						<div class="row mb-3"><div class="col-sm-12">
-						<h6>Status</h6><small>Not yet requested</small>
-						</div></div>
+			<h6 class="mb-3 ml-1 mt-1">Contracts for Import</h6>
+	
+			<div class="accordion" id="accordionExample">
 
-						<button class="btn btn-sm btn-danger btn-block">Retry</button>
-
-
-
-						</div>
-						</div>
-						</div>
-
-						--->
-
-	</div>
-
-
-
-
+			</div>
 
 		</div>
+		
+		<script src="./js/remix/plugin/plugin_iframe.js"></script>
+
+		<script src="./js/EtherscanContractImportPlugin/ContractRequest.js"></script>
+		<script src="./js/EtherscanContractImportPlugin/EtherscanRequestsWorker.js"></script>
+		<script src="./js/EtherscanContractImportPlugin/HTMLElement.js"></script>
+		<script src="./js/EtherscanContractImportPlugin/ImportContractUI.js"></script>
+		<script src="./js/EtherscanContractImportPlugin/ImportEtherscanContractPlugin.js"></script>
+		<script src="./js/EtherscanContractImportPlugin/Utility.js"></script>
 
 		<script>
-			// https://stackoverflow.com/questions/326069/how-to-identify-if-a-webpage-is-being-loaded-inside-an-iframe-or-directly-into-t
-			function inIframe () {
 
-			    try {
+			// the import tab is added to the page with javascript
+			window.addEventListener('load', function () {
 
-			        return window.self !== window.top;
+				ImportContractUI.import.setActive(0);
 
-			    } catch (e) {
-
-			        return true;
-
-			    }
-
-			}
+			});
 
 			// otherwise, i would have to write stuff to change the default page when 
 			// not being loaded in a remix client.
@@ -268,10 +103,21 @@ window.addEventListener('load', function () {
 
 			}
 
+			let client = plugin_iframe.createClient();
+			
+
+			// this is the plugin that the UI uses to make requests. i just attached it to the ui as the ui is acting
+			// like the window or document of the page.
+			//
+			// client, network, apiKey, storageLocation, retryAttemptsOnFailure
+			ImportContractUI.plugin = new ImportEtherscanContractPlugin(client, ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET, "", "/etherscan/contracts", 3);
+
 		</script>
-		
-		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+
+		<script src="./js/jquery/jquery-3.3.1.slim.min.js"></script>
+		<script src="./js/npm/popper.js@1.14.3/dist/umd/popper.min.js"></script>
+		<script src="./js/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js"></script>
+
 	</body>
 </html>
