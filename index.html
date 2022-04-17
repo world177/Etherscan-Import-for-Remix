@@ -27,13 +27,18 @@
 			ContractRequest.REQUEST_SUCCESSFUL = 1 << 1;
 			ContractRequest.REQUEST_FAILED = 1 << 2;
 			ContractRequest.LAST_SAVE_SUCCESSFUL = 1 << 3;
-			
+			ContractRequest.NOTIFIED_COMPLETE_SUCCESS = 1 << 4;
+			ContractRequest.NOTIFIED_COMPLETE_FAILURE = 1 << 5;
+
 			function ContractRequest(address) {
 				
 				this.state = ContractRequest.REQUEST_NOT_ATTEMPTED;
 				this.address = address;
-				this.attempts = 0;
 				this.lastAPIResult = "";
+				this.customStateText = "";
+
+				this.saveFailures = [];
+				this.requestFailures = [];
 				
 				this.lastParsedResult = {};
 				this.contractData = {};
@@ -48,8 +53,6 @@
 				// this from happening, and is also useful when looking directly at contract addresses
 				this.time = new Date().getTime();
 				
-				// all results from the api are saved with the corresponding attempt number
-				this.apiResults = [];
 				
 				this.UIUpdatesCallback = (dataForCallbackUpdates) => {};
 				
@@ -61,6 +64,24 @@
 				
 				}
 				
+				this.failSave = function(reason) {
+
+					this.saveFailures.push(reason);
+					this.setState((~ContractRequest.LAST_SAVE_SUCCESSFUL >>> 0) & this.state);
+
+					return false;
+
+				}
+
+				this.failRequest = function(reason) {
+
+					this.setState(ContractRequest.REQUEST_FAILED);
+					this.requestFailures.push(reason);
+
+					return this.state;
+
+				}
+
 				this.saveSourcesToRemixClient = async function(remixClient, storeLocation) {
 
 
@@ -102,19 +123,52 @@
 					
 					} else {
 					
+						this.failSave("Attempted to save before requesting contract from Etherscan.");
+
 						throw "Error: Contract request is not complete!";
 					
 					}
 					
-					sources = sources.sources;
-					
-					let filesInContract = Object.keys(sources);
+					let filesInContract = []; 
 					let success = true;
+
+					try {
+
+						sources = sources.sources;
+						filesInContract = Object.keys(sources);
+
+					} catch(e) {
+
+						return this.failSave("Unexpected parsed format. (1)");
+
+					}
+
+					try {
 					
-					for(let i = 0; i < filesInContract.length; i++) {
-					
-						success = success & await client.fileManager.writeFile(plannedStoreLocation + "/" + filesInContract[i], sources[filesInContract[i]].content);
-					
+						for(let i = 0; i < filesInContract.length && success; i++) {
+
+							let fileName = "";
+							let sourceFileContent = "";
+
+							try {
+
+								fileName = filesInContract[i]
+								sourceFileContent = sources[filesInContract[i]].content;
+
+							} catch(e) {
+
+								return this.failSave("Unexpected parsed format. (2)");
+
+							}
+						
+							success = success & await client.fileManager.writeFile(plannedStoreLocation + "/" + fileName, sourceFileContent);
+						
+						}
+
+					} catch(e) {
+
+						return this.failSave(e);
+
 					}
 					
 					if(success) {
@@ -125,10 +179,7 @@
 
 					} else {
 
-						// flips bits with an unsigned version of last save then does & with the current state.  
-						//
-						// this is really overkill, i think i was just bored.
-						this.setState((~ContractRequest.LAST_SAVE_SUCCESSFUL >>> 0) & this.state);
+						return this.failSave("Remix didn't provide a reason for failing to save.");
 
 					}
 					
@@ -138,78 +189,83 @@
 
 				this.setState = function(newState) {
 
-
 					this.state = newState;
 
 					this.UIUpdatesCallback(this);
 
 				}
 				
+
+
+
 				
 				this.runRequest = async function() {
 					
 					try {
 				
 						this.setState(ContractRequest.REQUEST_RUNNING);
-						this.attempts++; 
 						
 						this.lastAPIResult = await requestForContractFromEtherscan(this);
 						
-						this.apiResults[this.attempts - 1] = this.lastAPIResult;
-						
 						if(this.lastAPIResult.failedWebRequest) {
 						
-							this.setState(ContractRequest.REQUEST_FAILED);
+							return this.failRequest("Web request failed: " + this.lastAPIResult.webRequestResult);
 						
 						} else {
 						
-							this.lastParsedResult = JSON.parse(this.lastAPIResult.webRequestResult);
-							
-							if(this.lastParsedResult.status == 1) {
-							
-								this.contractData = this.lastParsedResult.result[0];
+							try {
+
+								this.lastParsedResult = JSON.parse(this.lastAPIResult.webRequestResult);
 								
-								// fix source code format. 
-								//
-								// if it starts with a bracket, there are multiple source code files
-								if(this.contractData.SourceCode[0] == "{") {
+								if(this.lastParsedResult.status == 1) {
 								
-									this.contractData.SourceCode = JSON.parse(this.contractData.SourceCode.substring(1, this.contractData.SourceCode.length - 1));
+									this.contractData = this.lastParsedResult.result[0];
+									
+									// fix source code format. 
+									//
+									// if it starts with a bracket, there are multiple source code files
+									if(this.contractData.SourceCode[0] == "{") {
+									
+										this.contractData.SourceCode = JSON.parse(this.contractData.SourceCode.substring(1, this.contractData.SourceCode.length - 1));
+									
+									// only one source code file. this just makes the format exactly the same as if it had multiple sources.
+									} else {
+										
+										let temp = {};
+									
+										temp.sources = {};
+										
+										let tempSourceObj = {};
+										tempSourceObj.content = this.contractData.SourceCode;
+										
+										temp.sources[this.contractData.ContractName + ".sol"] = tempSourceObj;
+									
+										this.contractData.SourceCode = temp;
+									
+									}
+									
+									// fix abi format
+									this.contractData.ABI = JSON.parse(this.contractData.ABI);
 								
-								// only one source code file. this just makes the format exactly the same as if it had multiple sources.
+									this.setState(ContractRequest.REQUEST_SUCCESSFUL);
+								
 								} else {
-									
-									let temp = {};
 								
-									temp.sources = {};
-									
-									let tempSourceObj = {};
-									tempSourceObj.content = this.contractData.SourceCode;
-									
-									temp.sources[this.contractData.ContractName + ".sol"] = tempSourceObj;
-								
-									this.contractData.SourceCode = temp;
+									return this.failRequest("API timeout or contract doesn't exist");
 								
 								}
-								
-								// fix abi format
-								this.contractData.ABI = JSON.parse(this.contractData.ABI);
-							
-								this.setState(ContractRequest.REQUEST_SUCCESSFUL);
-							
-							} else {
-							
-								this.setState(ContractRequest.REQUEST_FAILED);
-							
+
+							} catch(e) {
+
+								return this.failRequest("Parse error");
+
 							}
 						
 						}
 						
 					} catch(e) {
 						
-						this.apiResults[this.attempts - 1] = "Unexpected Error: " + e;
-						
-						this.setState(ContractRequest.REQUEST_FAILED);
+						return this.failRequest("Unexpected Error: " + e);
 					
 					}
 					
@@ -250,12 +306,6 @@
 					}
 					
 					return isProxy;
-				
-				}
-				
-				this.getAttempts = function() {
-				
-					return this.attempts;
 				
 				}
 				
@@ -312,23 +362,31 @@
 					switch(this.state) {
 					
 						case ContractRequest.REQUEST_NOT_ATTEMPTED:
-							description = "Not started";
+							description = "Not yet started";
 							break;
 							
 						case ContractRequest.REQUEST_RUNNING:
-							description = "Running";
+							description = "Requesting (still processing)";
 							break;
 							
 						case ContractRequest.REQUEST_SUCCESSFUL:
-							description = "Retrieved";
+							description = "Retrieved (attempting to save)";
 							break;
 
 						case ContractRequest.REQUEST_SUCCESSFUL | ContractRequest.LAST_SAVE_SUCCESSFUL:
-							description = "Saved";
+							description = "Saved (still processing)";
 							break;	
 
 						case ContractRequest.REQUEST_FAILED:
+							description = "Failed (still retrying)";
+							break;
+
+						case ContractRequest.NOTIFIED_COMPLETE_FAILURE:
 							description = "Failed";
+							break;
+
+						case ContractRequest.NOTIFIED_COMPLETE_SUCCESS:
+							description = "Complete";
 							break;
 					
 					}
@@ -375,9 +433,9 @@
 							} else if(xmlHttp.readyState == 4) {
 								
 								returnResult.failedWebRequest = true;
-								returnResult.webRequestResult = "Received a web status code that was not 200.";
+								returnResult.webRequestResult = "Received a web status code that was not 200. Code: " + String(xmlHttp.status);
 								
-								reject(returnResult);
+								resolve(returnResult);
 								
 							}
 								
@@ -388,7 +446,7 @@
 							returnResult.failedWebRequest = true;
 							returnResult.webRequestResult = JSON.stringify(event);
 							
-							reject(returnResult);
+							resolve(returnResult);
 							
 						});
 						
@@ -400,7 +458,7 @@
 						returnResult.failedWebRequest = true;
 						returnResult.webRequestResult = e;
 						
-						reject(returnResult);
+						resolve(returnResult);
 					
 					}
 				
@@ -454,34 +512,64 @@
 						let currentRequest = this.requestsQueue.pop();
 						
 						currentRequest.attemptsMade++;
-						
-						// if it **fails** to run the web request with success and save with success, 
-						if(!(await currentRequest.contractRequest.runRequest() == ContractRequest.REQUEST_SUCCESSFUL 
-							&& 	await currentRequest.contractRequest.saveSourcesToRemixClient(this.remixPluginClient, currentRequest.saveLocation))) {
-							
+
+						let requestSuccess = false;
+						let saveSuccess = false;
+
+						let lastSavedException = null;
+
+						try { 
+
+							requestSuccess = await currentRequest.contractRequest.runRequest() == ContractRequest.REQUEST_SUCCESSFUL;
+
+						} catch(e) {
+
+							lastSavedException = e;
+
+						}
+
+						try { 
+
+							saveSuccess = requestSuccess ? await currentRequest.contractRequest.saveSourcesToRemixClient(this.remixPluginClient, currentRequest.saveLocation) : false;
+
+						} catch(e) {
+
+							lastSavedException = e;
+
+						}
+
+						if(!(requestSuccess && saveSuccess)) {
+
 							// add it back to the queue if the attempts aren't exhausted.
 							if(currentRequest.attemptsMade < currentRequest.attemptLimit) {
 							
 								this.requestsQueue.push(currentRequest);
 							
 							} else {
-							
-								// notify attempts are up
+
+								currentRequest.contractRequest.setState(ContractRequest.NOTIFIED_COMPLETE_FAILURE);
 							
 							}
+
+						} 
+
+						if(requestSuccess && saveSuccess) {
+
+							if(currentRequest.contractRequest.isProxy() && this.followProxies) {
 							
-						
-						// otherwise, it was successful, so a final check is needed to see if it is a proxy.
-						} else if(currentRequest.contractRequest.isProxy() && this.followProxies) {
+								let implRequest = new ContractRequest(currentRequest.contractRequest.getImplementationAddressForProxy());
+								
+								// taking the callback function for ui updates from the first. (it's fine if it doesn't have one)
+								implRequest.setUICallback(currentRequest.contractRequest.UIUpdatesCallback);
+								
+								this.addRequest(implRequest, currentRequest.saveLocation, currentRequest.attemptLimit);
 							
-							let implRequest = new ContractRequest(currentRequest.contractRequest.getImplementationAddressForProxy());
-							
-							// taking the callback function for ui updates from the first. (it's fine if it doesn't have one)
-							implRequest.setUICallback(currentRequest.contractRequest.UIUpdatesCallback);
-							
-							this.addRequest(implRequest, currentRequest.saveLocation, currentRequest.attemptLimit);
-						
+							}
+
+							currentRequest.contractRequest.setState(ContractRequest.NOTIFIED_COMPLETE_SUCCESS);
+
 						}
+						
 						
 						this.updateState(EtherscanRequestsWorker.state.RUNNING_BUT_SLEEPING);
 						await sleep(this.sleepTimeBetweenWebRequests);
@@ -556,9 +644,23 @@
 
 			let ImportContractUI = {}
 						
-			ImportContractUI.addNewRequest = function() {
-			
-				ImportContractUI.plugin.addNewRequest(ImportContractUI.import.contractAddress.e().value, ImportContractUI.requestedImport.requestContractUIUpdatesCallback);
+			ImportContractUI.addNewRequest = async function() {
+
+				let inputVal = ImportContractUI.import.contractAddress.e().value;
+
+				// replace spaces, and split by comma (for multiple addresses at once)
+				inputVal = inputVal.replaceAll(" ", "").split(",");
+
+				for(requestedContract of inputVal) {
+
+					ImportContractUI.plugin.addNewRequest(requestedContract, ImportContractUI.requestedImport.requestContractUIUpdatesCallback);
+
+					// this is somewhat of a hack to guarantee none accidentally end up in the same folder
+					// id is something like { unix_timestamp } / { date } / { address }
+					// (sleep for 1 millisecond)
+					await sleep(1);
+
+				}
 			
 			}
 			
@@ -645,6 +747,16 @@
 				let alertInsert = document.getElementById(current.elementID + "alertInsert");
 				let storageInject = document.getElementById(current.elementID +  "storageInject");
 				let marginChange = document.getElementById(current.elementID + "marginChange");
+				let card = document.getElementById(current.elementID);
+
+				let defaultCardClasslist = "card border border-1 mb-1"
+				let cardClasslistAddition = "";
+
+				if(data.state != ContractRequest.REQUEST_NOT_ATTEMPTED) {
+
+					cardClasslistAddition = "border-warning";
+
+				}
 
 				heading.innerHTML = data.address;
 				status.innerHTML = data.getStatusDescription();
@@ -669,10 +781,42 @@
 
 					let storage = document.getElementById(current.elementID + "storage");
 
-					storage.value = data.storedAtLocations.length > 1 ? JSON.stringify(data.storedAtLocations) : data.storedAtLocations[0];
+					storage.innerHTML = data.storedAtLocations.length > 1 ? JSON.stringify(data.storedAtLocations) : data.storedAtLocations[0];
 				}
 
+				let shouldInsertAlert = data.state == ContractRequest.NOTIFIED_COMPLETE_FAILURE || data.state == ContractRequest.NOTIFIED_COMPLETE_SUCCESS;
+				let isStateFail = data.state == ContractRequest.NOTIFIED_COMPLETE_FAILURE;
+
+				if(shouldInsertAlert) {
+
+					// alert also signals that it is done, so the card border should be changed
+					cardClasslistAddition = "border-success"
+
+					let alertType = "success";
+					let alertMessage = "This contract was successfully imported!";
+
+					if(isStateFail) {
+
+						cardClasslistAddition = "border-danger"
+						alertType = "danger";
+						alertMessage = "Failed: " + String(data.saveFailures.length > 0 ? data.saveFailures[data.saveFailures.length - 1] : data.requestFailures[data.requestFailures.length - 1]);
+
+					}
+
+					let alertInsertInjection = `<div class="alert alert-`+ alertType +`" role="alert">
+													  <small>`+ alertMessage +`</small>
+												</div>`
+
+
+					alertInsert.innerHTML = alertInsertInjection;
+
+
+				}
+
+				card.classList = defaultCardClasslist + " " + cardClasslistAddition;
+
 				addressC.innerHTML = data.address;
+
 			
 			}
 			
@@ -743,10 +887,85 @@
 				
 				let tabs = [ImportContractUI.import.importTab, ImportContractUI.import.settingsTab];
 				
+
+				let inject1 = `<p class="mb-2">
+
+									<small>
+										Enter the address of a contract on Etherscan to attempt to import it into Remix
+									</small>
+
+								</p>      
+
+								<div class="form-group mb-2 mt-0">    
+
+									<label for="importContractSelectNetwork">
+
+										Network
+
+									</label>    
+
+									<select class="form-control" id="importContractSelectNetwork" disabled>     
+
+										<option>
+											Ethereum Mainnet
+										</option>      
+										<option>
+											2
+										</option>      
+										<option>
+											3
+										</option>      
+										<option>
+											4
+										</option>      
+										<option>
+											5
+										</option>    
+
+									</select>  
+
+								</div>  
+
+								<div class="form-group">    
+
+									<label for="importContractAddress">
+										Contract Address
+									</label>    
+
+									<input type="text" class="form-control" id="importContractAddress" placeholder="0x....." maxlength="100000000" onkeydown="if(event.keyCode == 13){ ImportContractUI.addNewRequest(); }">  
+
+								</div>    
+
+
+								<button type="submit" class="btn btn-primary btn-block btn-sm" onclick="ImportContractUI.addNewRequest()">
+									Request
+								</button>`;
 				
-				let inject1 = "	<p class=\"mb-2\"><small>Enter the address of a contract on Etherscan to attempt to import it into Remix</small></p>      <div class=\"form-group mb-2 mt-0\">    <label for=\"importContractSelectNetwork\">Network</label>    <select class=\"form-control\" id=\"importContractSelectNetwork\" disabled>      <option>Ethereum Mainnet</option>      <option>2</option>      <option>3</option>      <option>4</option>      <option>5</option>    </select>  </div>  <div class=\"form-group\">    <label for=\"importContractAddress\">Contract Address</label>    <input type=\"text\" class=\"form-control\" id=\"importContractAddress\" placeholder=\"0x.....\">  </div>    <button type=\"submit\" class=\"btn btn-primary btn-block btn-sm\" onclick=\"ImportContractUI.addNewRequest()\">Request</button>      ";
-				let inject2 = "<div class=\"form-group\">    <label for=\"importContractApiKey\">Etherscan API Key</label>    <input type=\"text\" class=\"form-control\" id=\"importContractApiKey\" placeholder=\"Optional: Etherscan API Key\">  </div>      <div class=\"form-group\">    <label for=\"importContractStorageLocation\">Storage Location</label>    <input type=\"text\" class=\"form-control\" id=\"importContractStorageLocation\" placeholder=\"/etherscan/contracts\" value=\"/etherscan/contracts\">  </div>        <div class=\"form-group\">    <label for=\"importContractRetryAttempts\">Retry Attempts on Failure</label>    <input type=\"text\" class=\"form-control\" id=\"importContractRetryAttempts\" placeholder=\"3\" value=\"3\">  </div>"
 				
+				
+				
+				
+				
+				let inject2 = `<div class="form-group">    
+
+									<label for="importContractApiKey">
+										Etherscan API Key
+									</label>    
+									<input type="text" class="form-control" id="importContractApiKey" placeholder="Optional: Etherscan API Key">  
+
+								</div>      
+
+								<div class="form-group">    
+									<label for="importContractStorageLocation">Storage Location</label>    
+									<input type="text" class="form-control" id="importContractStorageLocation" placeholder="/etherscan/contracts" value="/etherscan/contracts">  
+								</div>        
+
+								<div class="form-group">    
+									<label for="importContractRetryAttempts">Retry Attempts on Failure</label>    
+									<input type="text" class="form-control" id="importContractRetryAttempts" placeholder="3" value="3">  
+								</div>`
+
+
 				let injections = [inject1, inject2]
 				
 				for(let i = 0; i < tabs.length; i++) {
@@ -859,27 +1078,6 @@
   </div>
   <div class="card-body" id="importContractCardBodyContent">
 
-	<p class="mb-2"><small>Enter the address of a contract on Etherscan to attempt to import it into Remix</small></p>
-  
-    <div class="form-group mb-2 mt-0">
-    <label for="importContractSelectNetwork">Network</label>
-    <select class="form-control" id="importContractSelectNetwork" disabled>
-      <option>Ethereum Mainnet</option>
-      <option>2</option>
-      <option>3</option>
-      <option>4</option>
-      <option>5</option>
-    </select>
-  </div>
-  
-<div class="form-group">
-    <label for="importContractAddress">Contract Address</label>
-    <input type="text" class="form-control" id="importContractAddress" placeholder="0x.....">
-  </div>
-  
-  <button type="submit" class="btn btn-primary btn-block btn-sm" onclick="ImportContractUI.addNewRequest()">Request</button>
-  
-  
   
   
   </div>
@@ -888,101 +1086,139 @@
 </div>
 
 
+
+<script>
+
+window.addEventListener('load', function () {
+	ImportContractUI.import.setActive(0);
+});
+
+</script>
 
 
 <h6 class="mb-3 ml-1 mt-1">Contracts for Import</h6>
 	
-		<div class="accordion" id="accordionExample">
-  <div class="card border border-1 mb-1">
-    <div class="card-header mb-0" id="headingOne">
-      <div class="mb-0">
-        <button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-        #0001: 0x9814542f4230ab166efef3363a2d85e20d8708c7
-        </button>
-      </div>
-    </div>
+	<div class="accordion" id="accordionExample">
 
-    <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordionExample">
-      <div class="card-body">
-      <div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
-		<div class="row mb-3"><div class="col-sm-12">
-		<h6>Status</h6><small>Not yet requested</small>
-		</div></div>
-				<div class="row"><div class="col-sm-12">
-		<h6 class="mb-3">Storage Location</h6><small>  
-		
-		<textarea class="form-control" id="exampleFormControlTextarea1" rows="3" disabled>/etherscan/current_job/0x9814542f4230ab166efef3363a2d85e20d8708c7</textarea></small>
-		</div></div>
-		
-		
-		
-	
+		<!---
+						<div class="card border border-1 mb-1">
+							<div class="card-header mb-0" id="headingOne">
+								<div class="mb-0">
+									<button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+										#0001: 0x9814542f4230ab166efef3363a2d85e20d8708c7
+									</button>
+								</div>
+							</div>
+
+							<div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordionExample">
+							<div class="card-body">
+							<div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
+							<div class="row mb-3"><div class="col-sm-12">
+							<h6>Status</h6><small>Not yet requested</small>
+							</div></div>
+							<div class="row"><div class="col-sm-12">
+							<h6 class="mb-3">Storage Location</h6><small>  
+
+							<textarea class="form-control" id="exampleFormControlTextarea1" rows="3" disabled>/etherscan/current_job/0x9814542f4230ab166efef3363a2d85e20d8708c7</textarea></small>
+							</div></div>
+
+
+
+
+							</div>
+							</div>
+						</div>
+
+						<div class="card border border-1 mb-1">
+						<div class="card-header mb-0" id="headingOne">
+						<div class="mb-0">
+						<button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne2" aria-expanded="false" aria-controls="collapseOne2">
+						0x9814542f4230ab166efef3363a2d85e20d8708c7
+						</button>
+						</div>
+						</div>
+
+						<div id="collapseOne2" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+						<div class="card-body">
+						<div class="alert alert-success" role="alert">
+						<small>This contract was successfully imported!</small>
+						</div>
+						<div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
+						<div class="row"><div class="col-sm-12">
+						<h6>Status</h6><small>Not yet requested</small>
+						</div></div>
+
+
+
+						</div>
+						</div>
+						</div>
+
+						<div class="card border border-1 mb-3">
+						<div class="card-header mb-0" id="headingOne">
+						<div class="mb-0">
+						<button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne3" aria-expanded="false" aria-controls="collapseOne3">
+						0x9814542f4230ab166efef3363a2d85e20d8708c7
+						</button>
+						</div>
+						</div>
+
+						<div id="collapseOne3" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+						<div class="card-body">
+
+						<div class="alert alert-danger" role="alert">
+						<small>This contract's source code was not available on Etherscan</small>
+						</div>
+
+
+						<div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
+						<div class="row mb-3"><div class="col-sm-12">
+						<h6>Status</h6><small>Not yet requested</small>
+						</div></div>
+
+						<button class="btn btn-sm btn-danger btn-block">Retry</button>
+
+
+
+						</div>
+						</div>
+						</div>
+
+						--->
+
+	</div>
+
+
+
+
+
 		</div>
-    </div>
-  </div>
-  
-    <div class="card border border-1 mb-1">
-    <div class="card-header mb-0" id="headingOne">
-      <div class="mb-0">
-        <button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne2" aria-expanded="false" aria-controls="collapseOne2">
-        0x9814542f4230ab166efef3363a2d85e20d8708c7
-        </button>
-      </div>
-    </div>
 
-    <div id="collapseOne2" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
-      <div class="card-body">
-	  <div class="alert alert-success" role="alert">
-  <small>This contract was successfully imported!</small>
-</div>
-      <div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
-		<div class="row"><div class="col-sm-12">
-		<h6>Status</h6><small>Not yet requested</small>
-		</div></div>
-		
-		
-	
-		</div>
-    </div>
-  </div>
-    
-    <div class="card border border-1 mb-3">
-    <div class="card-header mb-0" id="headingOne">
-      <div class="mb-0">
-        <button class="btn btn-link btn-sm btn-block text-truncate" type="button" data-toggle="collapse" data-target="#collapseOne3" aria-expanded="false" aria-controls="collapseOne3">
-        0x9814542f4230ab166efef3363a2d85e20d8708c7
-        </button>
-      </div>
-    </div>
+		<script>
+			// https://stackoverflow.com/questions/326069/how-to-identify-if-a-webpage-is-being-loaded-inside-an-iframe-or-directly-into-t
+			function inIframe () {
 
-    <div id="collapseOne3" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
-      <div class="card-body">
-	  
-	  <div class="alert alert-danger" role="alert">
-	  <small>This contract's source code was not available on Etherscan</small>
-</div>
-	  
-	  
-      <div class="row mb-3"><div class="col-sm-12"><h6>Contract</h6><small>0x9814542f4230ab166efef3363a2d85e20d8708c7</small></div></div>
-		<div class="row mb-3"><div class="col-sm-12">
-		<h6>Status</h6><small>Not yet requested</small>
-		</div></div>
-		
-		<button class="btn btn-sm btn-danger btn-block">Retry</button>
-		
-		
-	
-		</div>
-    </div>
-  </div>
-  
-</div>
+			    try {
 
+			        return window.self !== window.top;
 
+			    } catch (e) {
 
+			        return true;
 
+			    }
+			    
+			}
 
-		</div>
+			// otherwise, i would have to write stuff to change the default page when 
+			// not being loaded in a remix client.
+			if(!inIframe()) {
+
+				window.location.replace("https://remix.ethereum.org");
+
+			}
+
+		</script>
 		
 		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
