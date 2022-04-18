@@ -1,10 +1,5 @@
-ImportEtherscanContractPlugin.networks = {};
+function ImportEtherscanContractPlugin(remixClient, defaultAPIKey, defaultStorageLocation, defaultRetryAttempts, waitBetweenRequests, workerUICallback) {
 
-ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET = 0;
-
-function ImportEtherscanContractPlugin(remixClient, defaultNetwork, defaultAPIKey, defaultStorageLocation, defaultRetryAttempts, waitBetweenRequests, workerUICallback) {
-
-	this.network = defaultNetwork;
 	this.APIKey = defaultAPIKey;
 	this.storageLocation = defaultStorageLocation;
 	this.retryAttempts = Number(defaultRetryAttempts);
@@ -29,14 +24,14 @@ function ImportEtherscanContractPlugin(remixClient, defaultNetwork, defaultAPIKe
 
 	this.worker = new EtherscanRequestsWorker(client, true);
 	
-	this.addNewRequest = function(requestAddress, callbackForUI) {
+	this.addNewRequest = function(requestAddress, network, callbackForUI) {
 	
-		this.addNewRequestWithoutDefaults(requestAddress, this.storageLocation, this.retryAttempts, this.APIKey, callbackForUI);
+		this.addNewRequestWithoutDefaults(requestAddress, network, this.storageLocation, this.retryAttempts, this.APIKey, callbackForUI);
 	
 	}
 	
 	// this is for internal requests and requests made outside of the UI that want to override the default settings. 
-	this.addNewRequestWithoutDefaults = function(requestAddress, storageLocation, retryAttempts, apiKey, callbackForUI) {
+	this.addNewRequestWithoutDefaults = function(requestAddress, network, storageLocation, retryAttempts, apiKey, callbackForUI) {
 	
 		if(callbackForUI == null) {
 		
@@ -50,7 +45,7 @@ function ImportEtherscanContractPlugin(remixClient, defaultNetwork, defaultAPIKe
 
 		}
 	
-		let contractToRequest = new ContractRequest(requestAddress, apiKey);
+		let contractToRequest = new ContractRequest(requestAddress, network, apiKey);
 		
 		contractToRequest.setUICallback(callbackForUI);
 	

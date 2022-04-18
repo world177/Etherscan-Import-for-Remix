@@ -6,6 +6,8 @@ ContractRequest.LAST_SAVE_SUCCESSFUL = 1 << 3;
 ContractRequest.NOTIFIED_COMPLETE_SUCCESS = 1 << 4;
 ContractRequest.NOTIFIED_COMPLETE_FAILURE = 1 << 5;
 
+ContractRequest.NETWORKS = [["etherscan","https://api.etherscan.io/api"],["ropsten.etherscan","https://api-ropsten.etherscan.io/api"],["rinkeby.etherscan","https://api-rinkeby.etherscan.io/api"],["goerli.etherscan","https://api-goerli.etherscan.io/api"],["kovan.etherscan","https://api-kovan.etherscan.io/api"],["bscscan","https://api.bscscan.com/api"],["testnet.bscscan","https://api-testnet.bscscan.com/api"],["hecoinfo","https://api.hecoinfo.com/api"],["testnet.hecoinfo","https://api-testnet.hecoinfo.com/api"],["ftmscan","https://api.ftmscan.com/api"],["testnet.ftmscan","https://api-testnet.ftmscan.com/api"],["optimistic.etherscan","https://api-optimistic.etherscan.io/api"],["kovan-optimistic.etherscan","https://api-kovan-optimistic.etherscan.io/api"],["polygonscan","https://api.polygonscan.com/api"],["testnet.polygonscan","https://api-testnet.polygonscan.com/api"],["arbiscan","https://api.arbiscan.io/api"],["testnet.arbiscan","https://api-testnet.arbiscan.io/api"],["snowtrace","https://api.snowtrace.io/api"],["testnet.snowtrace","https://api-testnet.snowtrace.io/api"]];
+
 // The following two addresses have different structures in return results.
 
 // 0x66017d22b0f8556afdd19fc67041899eb65a21bb
@@ -14,6 +16,7 @@ ContractRequest.requestForContractFromEtherscan = function(contractRequestObject
 
 	let contractAddress = contractRequestObject.address;
 	let apiKey = contractRequestObject.apiKey;
+	let network = contractRequestObject.network;
 	
 	let returnResult = {};
 	
@@ -24,7 +27,8 @@ ContractRequest.requestForContractFromEtherscan = function(contractRequestObject
 	
 		try {
 
-			let address = new URL("https://api.etherscan.io/api?module=contract&action=getsourcecode&address=" + contractAddress + "&apikey=" + apiKey); 
+			//let address = new URL("https://api.etherscan.io/api?module=contract&action=getsourcecode&address=" + contractAddress + "&apikey=" + apiKey); 
+			let address = new URL(String(ContractRequest.NETWORKS[network][1]) + "?module=contract&action=getsourcecode&address=" + contractAddress + "&apikey=" + apiKey); 
 	
 			let xmlHttp = new XMLHttpRequest();
 			
@@ -76,12 +80,13 @@ ContractRequest.requestForContractFromEtherscan = function(contractRequestObject
 }
 
 // api key can be undefined
-function ContractRequest(address, apiKey) {
+function ContractRequest(address, network, apiKey) {
 	
 	this.state = ContractRequest.REQUEST_NOT_ATTEMPTED;
 	this.address = address;
 	this.lastAPIResult = "";
 	this.customStateText = "";
+	this.network = Number(network);
 
 	this.apiKey = "";
 

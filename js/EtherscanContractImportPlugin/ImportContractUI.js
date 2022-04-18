@@ -11,13 +11,14 @@ ImportContractUI.addNewRequest = async function() {
 	}
 
 	let inputVal = ImportContractUI.import.contractAddress.e().value;
+	let network = ImportContractUI.import.contractSelectNetwork.e().selectedIndex;
 
 	// replace spaces, and split by comma (for multiple addresses at once)
 	inputVal = inputVal.replaceAll(" ", "").split(",");
 
 	for(requestedContract of inputVal) {
 
-		ImportContractUI.plugin.addNewRequest(requestedContract, ImportContractUI.requestedImport.requestContractUIUpdatesCallback);
+		ImportContractUI.plugin.addNewRequest(requestedContract, network, ImportContractUI.requestedImport.requestContractUIUpdatesCallback);
 
 		// this is somewhat of a hack to guarantee none accidentally end up in the same folder
 		// id is something like { unix_timestamp } / { date } / { address }
@@ -189,6 +190,7 @@ ImportContractUI.import.contractAPIKey =  new HTMLElement("importContractApiKey"
 ImportContractUI.import.contractStorageLocation = new HTMLElement("importContractStorageLocation");
 ImportContractUI.import.contractRetryAttempts = new HTMLElement("importContractRetryAttempts");
 ImportContractUI.import.contractRequestLimit = new HTMLElement("importContractRequestLimit");
+ImportContractUI.import.contractSelectNetwork = new HTMLElement("importContractSelectNetwork");
 
 ImportContractUI.import.contractUpdateSettings = function() {
 
@@ -210,6 +212,21 @@ ImportContractUI.import.contractUpdateSettings = function() {
 
 }
 
+ImportContractUI.import.buildNetworkList = function() {
+
+	let returnText = "";
+
+	for(x of ContractRequest.NETWORKS) {
+
+		returnText += "<option>";
+		returnText += escapeHTML(String(x[0]));
+		returnText += "</option>";
+
+	}
+
+	return returnText;
+
+}
 
 ImportContractUI.import.setActive = function(tabID) {
 		
@@ -235,24 +252,8 @@ ImportContractUI.import.setActive = function(tabID) {
 
 						</label>    
 
-						<select class="form-control" id="importContractSelectNetwork" disabled>     
-
-							<option>
-								Ethereum Mainnet
-							</option>      
-							<option>
-								2
-							</option>      
-							<option>
-								3
-							</option>      
-							<option>
-								4
-							</option>      
-							<option>
-								5
-							</option>    
-
+						<select class="form-control" id="importContractSelectNetwork" >     
+							`+ ImportContractUI.import.buildNetworkList() + `
 						</select>  
 
 					</div>  
