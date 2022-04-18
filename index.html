@@ -48,6 +48,8 @@
 		</div>
 		
 		<script src="./js/remix/plugin/plugin_iframe.js"></script>
+		<script src="./js/remix/plugin/plugin_engine.js"></script>
+				<script src="./js/remix/plugin/plugin_engine_web.js"></script>
 
 		<script src="./js/EtherscanContractImportPlugin/ContractRequest.js"></script>
 		<script src="./js/EtherscanContractImportPlugin/EtherscanRequestsWorker.js"></script>
@@ -57,6 +59,14 @@
 		<script src="./js/EtherscanContractImportPlugin/Utility.js"></script>
 
 		<script>
+		
+		//http://localhost/remix-test/remix-live-gh-pages/?#activate=etherscan-import&call=etherscan-import//wow//i//can//see
+			// attempting to hack in the calls we want
+			window.addEventListener("message", (event) => {
+
+				console.log("iframe: " + JSON.stringify(event));
+
+			}, false);
 
 			// the import tab is added to the page with javascript
 			window.addEventListener('load', function () {
@@ -75,6 +85,26 @@
 
 			let client = plugin_iframe.createClient();
 			
+
+			let engine = new plugin_engine.Engine();
+			let man = new plugin_engine.PluginManager();
+
+			let plug = new plugin_engine_web.IframePlugin({
+			  name: 'etherscan-import',
+			  url: 'https://127.0.0.1/etherscan-plugin/',
+			  methods: ['wow']
+			});
+
+			plug.wow = (param, par2, par3) => console.log("i-am-alive");
+
+			engine.register([plug, man]);
+
+			man.activatePlugin('etherscan-import');
+			//man.activatePlugin('wow');
+
+			//console.log(await plug.call('console', 'print', 'no, you\'ve won'));
+
+
 
 			// this is the plugin that the UI uses to make requests. i just attached it to the ui as the ui is acting
 			// like the window or document of the page.
