@@ -84,26 +84,38 @@
 			}
 
 			let client = plugin_iframe.createClient();
-			
 
-			let engine = new plugin_engine.Engine();
-			let man = new plugin_engine.PluginManager();
+			client.methods = ["loadContract"];
 
-			let plug = new plugin_engine_web.IframePlugin({
-			  name: 'etherscan-import',
-			  url: 'https://127.0.0.1/etherscan-plugin/',
-			  methods: ['wow']
-			});
+			// it's working!
+			//
+			// http://localhost/remix-test/remix-live-gh-pages/?#activate=etherscan-import&call=etherscan-import//loadContract//0x66017d22b0f8556afdd19fc67041899eb65a21bb//2
+			client.loadContract = function(addressList, networkID) {
 
-			plug.wow = (param, par2, par3) => console.log("i-am-alive");
+				ImportContractUI.import.setActive(0);
+				let list = document.getElementById("importContractSelectNetwork");
 
-			engine.register([plug, man]);
+				if(networkID != null) {
 
-			man.activatePlugin('etherscan-import');
-			//man.activatePlugin('wow');
+					if(networkID <= ContractRequest.NETWORKS.length && networkID > 0) {
 
-			//console.log(await plug.call('console', 'print', 'no, you\'ve won'));
+						list.selectedIndex = networkID - 1;
 
+					} else {
+
+						list.selectedIndex = 0;
+
+					}
+
+				}
+
+				let addressInput = document.getElementById("importContractAddress");
+
+				addressInput.value = addressList;
+
+				ImportContractUI.addNewRequest();
+
+			}
 
 
 			// this is the plugin that the UI uses to make requests. i just attached it to the ui as the ui is acting

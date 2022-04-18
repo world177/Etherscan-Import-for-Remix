@@ -216,11 +216,15 @@ ImportContractUI.import.buildNetworkList = function() {
 
 	let returnText = "";
 
+	let i = 1;
+
 	for(x of ContractRequest.NETWORKS) {
 
 		returnText += "<option>";
-		returnText += escapeHTML(String(x[0]));
+		returnText += "[" + String(i) + "]  "+ escapeHTML(String(x[0]));
 		returnText += "</option>";
+
+		i++;
 
 	}
 
