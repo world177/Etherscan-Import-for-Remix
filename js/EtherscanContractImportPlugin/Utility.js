@@ -19,4 +19,27 @@ function inIframe () {
 
     }
 
+    return false;
+
+}
+
+function isNumber(testVal) {
+
+    // will be defined as NaN if not a number
+    let temp = Number(testVal);
+
+    if(temp >= 0 || temp <= 0) {
+
+        return true;
+
+    }
+
+    return false;
+
+}
+
+function escapeHTML(unsafe) {
+
+    return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+
 }

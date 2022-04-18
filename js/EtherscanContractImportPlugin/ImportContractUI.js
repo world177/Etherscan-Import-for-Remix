@@ -25,15 +25,6 @@ ImportContractUI.requestedImport = {};
 
 ImportContractUI.requestedImport.htmlInjectionLocation = new HTMLElement("accordionExample");
 
-// not actually going to use this function
-ImportContractUI.requestedImport.injectIntoInjectionLocation = function(inject) {
-
-	let current = ImportContractUI.requestedImport.htmlInjectionLocation.e().innerHTML;
-
-	ImportContractUI.requestedImport.htmlInjectionLocation.e().innerHTML = inject + current;
-
-}
-
 ImportContractUI.requestedImport.issuedUI = {};
 
 ImportContractUI.requestedImport.requestContractUIUpdatesCallback = function(data) {
@@ -46,43 +37,43 @@ ImportContractUI.requestedImport.requestContractUIUpdatesCallback = function(dat
 		
 		let injectLocation = ImportContractUI.requestedImport.htmlInjectionLocation.e();
 
-		let injectionTemplate = `<div class="card border border-1 mb-1" id="` + newElementID + `">
-									<div class="card-header mb-0" id="` + newElementID +  "heading" + `">
+		let injectionTemplate = `<div class="card border border-1 mb-1" id="` + escapeHTML(newElementID) + `">
+									<div class="card-header mb-0" id="` + escapeHTML(newElementID) +  "heading" + `">
 									  <div class="mb-0">
-										<button class="btn btn-link btn-sm btn-block text-truncate collapsed" id="` + newElementID +  "buttonHeading" + `" type="button" data-toggle="collapse" data-target="#` + newElementID +  "collapse" + `" aria-expanded="false" aria-controls="` + newElementID +  "collapse" + `">
-											` + data.address + `
+										<button class="btn btn-link btn-sm btn-block text-truncate collapsed" id="` + escapeHTML(newElementID) +  "buttonHeading" + `" type="button" data-toggle="collapse" data-target="#` + escapeHTML(newElementID) +  "collapse" + `" aria-expanded="false" aria-controls="` + escapeHTML(newElementID) +  "collapse" + `">
+											` + escapeHTML(data.address) + `
 										</button>
 									  </div>
 									</div>
 
-									<div id="` + newElementID +  "collapse" + `" class="collapse" aria-labelledby="` + newElementID +  "heading" + `" data-parent="#accordionExample" style="">
+									<div id="` + escapeHTML(newElementID) +  "collapse" + `" class="collapse" aria-labelledby="` + escapeHTML(newElementID) +  "heading" + `" data-parent="#accordionExample" style="">
 										<div class="card-body">
 
-										  	<span id="` + newElementID + "alertInsert" + `"></span>
+										  	<span id="` + escapeHTML(newElementID) + "alertInsert" + `"></span>
 
 										  	<div class="row mb-3">
 										  		<div class="col-sm-12">
 										  			<h6>
 										  				Contract
 										  			</h6>
-										  			<small id="` + newElementID +  "addressC" + `">
+										  			<small id="` + escapeHTML(newElementID) +  "addressC" + `">
 										  				0x9814542f4230ab166efef3363a2d85e20d8708c7
 										  			</small>
 										  		</div>
 										  	</div>
 
-											<div class="row mb-0" id="` + newElementID +  "marginChange" + `">
+											<div class="row mb-0" id="` + escapeHTML(newElementID) +  "marginChange" + `">
 												<div class="col-sm-12">
 													<h6>
 														Status
 													</h6>
-													<small id="` + newElementID +  "status" + `">
+													<small id="` + escapeHTML(newElementID) +  "status" + `">
 														Not yet requested
 													</small>
 												</div>
 											</div>
 
-											<span id="` + newElementID +  "storageInject" + `">
+											<span id="` + escapeHTML(newElementID) +  "storageInject" + `">
 
 
 
@@ -114,8 +105,8 @@ ImportContractUI.requestedImport.requestContractUIUpdatesCallback = function(dat
 
 	}
 
-	heading.innerHTML = data.address;
-	status.innerHTML = data.getStatusDescription();
+	heading.innerHTML = escapeHTML(data.address);
+	status.innerHTML = escapeHTML(data.getStatusDescription());
 
 	if(data.storedAtLocations.length > 0) {
 
@@ -125,7 +116,7 @@ ImportContractUI.requestedImport.requestContractUIUpdatesCallback = function(dat
 												Storage Location
 											</h6>
 											<small>  
-												<div class="col-sm-12 mb-0 bg-dark pt-2 pb-2 border border-1 rounded" id="` + current.elementID +  "storage" + `">
+												<div class="col-sm-12 mb-0 bg-dark pt-2 pb-2 border border-1 rounded" id="` + escapeHTML(current.elementID) +  "storage" + `">
 													/etherscan/current_job/0x9814542f4230ab166efef3363a2d85e20d8708c7
 												</div>
 											</small>
@@ -137,7 +128,7 @@ ImportContractUI.requestedImport.requestContractUIUpdatesCallback = function(dat
 
 		let storage = document.getElementById(current.elementID + "storage");
 
-		storage.innerHTML = data.storedAtLocations.length > 1 ? JSON.stringify(data.storedAtLocations) : data.storedAtLocations[0];
+		storage.innerHTML = data.storedAtLocations.length > 1 ? escapeHTML(JSON.stringify(data.storedAtLocations)) : escapeHTML(data.storedAtLocations[0]);
 	}
 
 	let shouldInsertAlert = data.state == ContractRequest.NOTIFIED_COMPLETE_FAILURE || data.state == ContractRequest.NOTIFIED_COMPLETE_SUCCESS;
@@ -159,8 +150,8 @@ ImportContractUI.requestedImport.requestContractUIUpdatesCallback = function(dat
 
 		}
 
-		let alertInsertInjection = `<div class="alert alert-`+ alertType +`" role="alert">
-										  <small>`+ alertMessage +`</small>
+		let alertInsertInjection = `<div class="alert alert-`+ escapeHTML(alertType) +`" role="alert">
+										  <small>`+ escapeHTML(alertMessage) +`</small>
 									</div>`
 
 
@@ -171,7 +162,7 @@ ImportContractUI.requestedImport.requestContractUIUpdatesCallback = function(dat
 
 	card.classList = defaultCardClasslist + " " + cardClasslistAddition;
 
-	addressC.innerHTML = data.address;
+	addressC.innerHTML = escapeHTML(data.address);
 
 
 }
@@ -189,6 +180,27 @@ ImportContractUI.import.cardBodyContent = new HTMLElement("importContractCardBod
 ImportContractUI.import.contractAPIKey =  new HTMLElement("importContractApiKey");
 ImportContractUI.import.contractStorageLocation = new HTMLElement("importContractStorageLocation");
 ImportContractUI.import.contractRetryAttempts = new HTMLElement("importContractRetryAttempts");
+ImportContractUI.import.contractRequestLimit = new HTMLElement("importContractRequestLimit");
+
+ImportContractUI.import.contractUpdateSettings = function() {
+
+	let setAPIKey = String(ImportContractUI.import.contractAPIKey.e().value);
+	let setStorage = String(ImportContractUI.import.contractStorageLocation.e().value);
+	let setRetry = Number(ImportContractUI.import.contractRetryAttempts.e().value);
+	let setRequestLimit = Number(ImportContractUI.import.contractRequestLimit.e().value);
+
+	setRetry = isNumber(setRetry) ? setRetry : 3;
+
+	setRequestLimit = isNumber(setRequestLimit) ? setRequestLimit : 0.2;
+ 	setRequestLimit = setRequestLimit >= 0.2 ? setRequestLimit : 0.2; // prevents from waiting longer than required
+	setRequestLimit = (1.0 / setRequestLimit) * 1000.0;
+
+	ImportContractUI.plugin.APIKey = setAPIKey;
+	ImportContractUI.plugin.storageLocation = setStorage;
+	ImportContractUI.plugin.retryAttempts = setRetry;
+	ImportContractUI.plugin.waitBetweenRequests = setRequestLimit;
+
+}
 
 
 ImportContractUI.import.setActive = function(tabID) {
@@ -243,7 +255,7 @@ ImportContractUI.import.setActive = function(tabID) {
 							Contract Address
 						</label>    
 
-						<input type="text" class="form-control" id="importContractAddress" placeholder="0x....." maxlength="100000000" onkeydown="if(event.keyCode == 13){ ImportContractUI.addNewRequest(); }">  
+						<input type="text" class="form-control" id="importContractAddress" placeholder="0x....." maxlength="100000000" onkeydown="if(event.keyCode == 13) { ImportContractUI.addNewRequest(); }">  
 
 					</div>    
 
@@ -252,28 +264,31 @@ ImportContractUI.import.setActive = function(tabID) {
 						Request
 					</button>`;
 	
-	
-	
-	
-	
-	
 	let inject2 = `<div class="form-group">    
 
 						<label for="importContractApiKey">
 							Etherscan API Key
 						</label>    
-						<input type="text" class="form-control" id="importContractApiKey" placeholder="Optional: Etherscan API Key">  
+						<input type="text" class="form-control" id="importContractApiKey"  oninput="ImportContractUI.import.contractUpdateSettings();" onkeydown="ImportContractUI.import.contractUpdateSettings();" placeholder="Optional: Etherscan API Key" value="">  
 
 					</div>      
+					<div class="form-group">    
+
+						<label for="importContractRequestLimit">
+							Requests a second
+						</label>    
+						<input type="text" class="form-control" id="importContractRequestLimit" oninput="ImportContractUI.import.contractUpdateSettings();" onkeydown="ImportContractUI.import.contractUpdateSettings();"  placeholder="Required: API Key" value="0.2">  
+
+					</div>
 
 					<div class="form-group">    
 						<label for="importContractStorageLocation">Storage Location</label>    
-						<input type="text" class="form-control" id="importContractStorageLocation" placeholder="/etherscan/contracts" value="/etherscan/contracts">  
+						<input type="text" class="form-control" id="importContractStorageLocation" oninput="ImportContractUI.import.contractUpdateSettings();" onkeydown="ImportContractUI.import.contractUpdateSettings();"  placeholder="/etherscan/contracts" value="/etherscan/contracts">  
 					</div>        
 
 					<div class="form-group">    
 						<label for="importContractRetryAttempts">Retry Attempts on Failure</label>    
-						<input type="text" class="form-control" id="importContractRetryAttempts" placeholder="3" value="3">  
+						<input type="text" class="form-control" id="importContractRetryAttempts" oninput="ImportContractUI.import.contractUpdateSettings();" onkeydown="ImportContractUI.import.contractUpdateSettings();"  placeholder="3" value="3">  
 					</div>`
 
 
@@ -286,7 +301,17 @@ ImportContractUI.import.setActive = function(tabID) {
 	}
 	
 	tabs[tabID].e().classList.value = activeTabClasses;
-	
+
 	ImportContractUI.import.cardBodyContent.e().innerHTML = injections[tabID];
+
+	if(tabID == 1) {
+
+		ImportContractUI.import.contractAPIKey.e().value = ImportContractUI.plugin.APIKey;
+		ImportContractUI.import.contractRequestLimit.e().value = (1.0 / (ImportContractUI.plugin.waitBetweenRequests / 1000.0));
+		ImportContractUI.import.contractStorageLocation.e().value = ImportContractUI.plugin.storageLocation;
+		ImportContractUI.import.contractRetryAttempts.e().value = ImportContractUI.plugin.retryAttempts;
+
+	}
+
 
 }

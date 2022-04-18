@@ -108,10 +108,10 @@
 
 			// this is the plugin that the UI uses to make requests. i just attached it to the ui as the ui is acting
 			// like the window or document of the page.
-			//
+			// 
 			// client, network, apiKey, storageLocation, retryAttemptsOnFailure
-			ImportContractUI.plugin = new ImportEtherscanContractPlugin(client, ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET, "", "/etherscan/contracts", 3);
-
+			ImportContractUI.plugin = new ImportEtherscanContractPlugin(client, ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET, "", "/etherscan/contracts", 3, 5000);
+																	//(remixClient, defaultNetwork, defaultAPIKey, defaultStorageLocation, defaultRetryAttempts, waitBetweenRequests, workerUICallback
 		</script>
 
 

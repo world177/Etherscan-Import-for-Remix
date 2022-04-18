@@ -2,13 +2,26 @@ ImportEtherscanContractPlugin.networks = {};
 
 ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET = 0;
 
-function ImportEtherscanContractPlugin(remixClient, defaultNetwork, defaultAPIKey, defaultStorageLocation, defaultRetryAttempts, workerUICallback) {
+function ImportEtherscanContractPlugin(remixClient, defaultNetwork, defaultAPIKey, defaultStorageLocation, defaultRetryAttempts, waitBetweenRequests, workerUICallback) {
 
 	this.network = defaultNetwork;
 	this.APIKey = defaultAPIKey;
 	this.storageLocation = defaultStorageLocation;
-	this.retryAttempts = defaultRetryAttempts;
+	this.retryAttempts = Number(defaultRetryAttempts);
 	this.workerUICallback = workerUICallback;
+	this.waitBetweenRequests = Number(waitBetweenRequests);
+
+	if(!isNumber(this.waitBetweenRequests) || this.waitBetweenRequests > 5000) {
+
+		this.waitBetweenRequests = 5000;
+
+	}
+
+	if(!isNumber(this.retryAttempts)) {
+
+		this.retryAttempts = 3;
+
+	}
 	
 	if(this.workerUICallback == null) 
 		this.workerUICallback = () => {};
