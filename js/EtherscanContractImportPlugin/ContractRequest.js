@@ -195,7 +195,7 @@ function ContractRequest(address, network, apiKey) {
 
 		} catch(e) {
 
-			return this.failSave("Unexpected parsed format. (1)");
+			return this.failSave("Unexpected parsed format. (1): " + e);
 
 		}
 
@@ -213,7 +213,7 @@ function ContractRequest(address, network, apiKey) {
 
 				} catch(e) {
 
-					return this.failSave("Unexpected parsed format. (2)");
+					return this.failSave("Unexpected parsed format. (2): " + e);
 
 				}
 			
@@ -279,11 +279,19 @@ function ContractRequest(address, network, apiKey) {
 						
 						// fix source code format. 
 						//
-						// if it starts with a bracket, there are multiple source code files
-						if(this.contractData.SourceCode[0] == "{") {
+						// if it starts with two brackets, there are multiple source code files
+						if(this.contractData.SourceCode[0] == "{" && this.contractData.SourceCode[1] == "{") {
 						
 							this.contractData.SourceCode = JSON.parse(this.contractData.SourceCode.substring(1, this.contractData.SourceCode.length - 1));
 						
+						// actual JSON. this just makes the format exactly the same as if it had multiple sources.
+						} else if(this.contractData.SourceCode[0] == "{") {
+
+							let temp = this.contractData.SourceCode;
+
+							this.contractData.SourceCode = {};
+							this.contractData.SourceCode.sources = JSON.parse(temp);
+
 						// only one source code file. this just makes the format exactly the same as if it had multiple sources.
 						} else {
 							
@@ -293,8 +301,16 @@ function ContractRequest(address, network, apiKey) {
 							
 							let tempSourceObj = {};
 							tempSourceObj.content = this.contractData.SourceCode;
+
+							let ext = ".sol"
+
+							if(this.contractData.CompilerVersion.startsWith("vyper:")) {
+
+								ext = ".vy";
+
+							}
 							
-							temp.sources[this.contractData.ContractName + ".sol"] = tempSourceObj;
+							temp.sources[this.contractData.ContractName + ext] = tempSourceObj;
 						
 							this.contractData.SourceCode = temp;
 						
@@ -313,7 +329,7 @@ function ContractRequest(address, network, apiKey) {
 
 				} catch(e) {
 
-					return this.failRequest("Parse error");
+					return this.failRequest("Parse error: " + e);
 
 				}
 			
