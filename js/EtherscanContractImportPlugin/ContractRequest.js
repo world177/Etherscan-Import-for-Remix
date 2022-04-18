@@ -13,6 +13,7 @@ ContractRequest.NOTIFIED_COMPLETE_FAILURE = 1 << 5;
 ContractRequest.requestForContractFromEtherscan = function(contractRequestObject) {
 
 	let contractAddress = contractRequestObject.address;
+	let apiKey = contractRequestObject.apiKey;
 	
 	let returnResult = {};
 	
@@ -23,7 +24,7 @@ ContractRequest.requestForContractFromEtherscan = function(contractRequestObject
 	
 		try {
 
-			let address = new URL("https://api.etherscan.io/api?module=contract&action=getsourcecode&address=" + contractAddress + "&apikey=YourApiKeyToken"); 
+			let address = new URL("https://api.etherscan.io/api?module=contract&action=getsourcecode&address=" + contractAddress + "&apikey=" + apiKey); 
 	
 			let xmlHttp = new XMLHttpRequest();
 			
@@ -74,12 +75,18 @@ ContractRequest.requestForContractFromEtherscan = function(contractRequestObject
 
 }
 
-function ContractRequest(address) {
+// api key can be undefined
+function ContractRequest(address, apiKey) {
 	
 	this.state = ContractRequest.REQUEST_NOT_ATTEMPTED;
 	this.address = address;
 	this.lastAPIResult = "";
 	this.customStateText = "";
+
+	this.apiKey = "";
+
+	if(apiKey != null)
+		this.apiKey = String(apiKey);
 
 	this.saveFailures = [];
 	this.requestFailures = [];
@@ -295,7 +302,7 @@ function ContractRequest(address) {
 					
 					} else {
 					
-						return this.failRequest("API timeout or contract doesn't exist");
+						return this.failRequest("Contract doesn't exist or API limitation: " + String(JSON.stringify(this.lastAPIResult)));
 					
 					}
 

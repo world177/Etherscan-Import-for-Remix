@@ -1,6 +1,14 @@
 let ImportContractUI = {}
 			
+
+
 ImportContractUI.addNewRequest = async function() {
+
+	if(ImportContractUI.requestedImport.headerInjectLocation.e().innerHTML.length == 0) {
+
+		ImportContractUI.requestedImport.headerInjectLocation.e().innerHTML = `<h6 class="mb-3 ml-1 mt-1">Contracts for Import</h6>`;
+
+	}
 
 	let inputVal = ImportContractUI.import.contractAddress.e().value;
 
@@ -20,9 +28,9 @@ ImportContractUI.addNewRequest = async function() {
 
 }
 
-
 ImportContractUI.requestedImport = {};
 
+ImportContractUI.requestedImport.headerInjectLocation = new HTMLElement("injectAfterFirstRequest");
 ImportContractUI.requestedImport.htmlInjectionLocation = new HTMLElement("accordionExample");
 
 ImportContractUI.requestedImport.issuedUI = {};
@@ -195,10 +203,10 @@ ImportContractUI.import.contractUpdateSettings = function() {
  	setRequestLimit = setRequestLimit >= 0.2 ? setRequestLimit : 0.2; // prevents from waiting longer than required
 	setRequestLimit = (1.0 / setRequestLimit) * 1000.0;
 
-	ImportContractUI.plugin.APIKey = setAPIKey;
+	ImportContractUI.plugin.setAPIKey(setAPIKey);
 	ImportContractUI.plugin.storageLocation = setStorage;
 	ImportContractUI.plugin.retryAttempts = setRetry;
-	ImportContractUI.plugin.waitBetweenRequests = setRequestLimit;
+	ImportContractUI.plugin.setTimeToWaitBetweenRequests(setRequestLimit);
 
 }
 
@@ -287,7 +295,7 @@ ImportContractUI.import.setActive = function(tabID) {
 					</div>        
 
 					<div class="form-group">    
-						<label for="importContractRetryAttempts">Retry Attempts on Failure</label>    
+						<label for="importContractRetryAttempts">Attempts before Failure</label>    
 						<input type="text" class="form-control" id="importContractRetryAttempts" oninput="ImportContractUI.import.contractUpdateSettings();" onkeydown="ImportContractUI.import.contractUpdateSettings();"  placeholder="3" value="3">  
 					</div>`
 

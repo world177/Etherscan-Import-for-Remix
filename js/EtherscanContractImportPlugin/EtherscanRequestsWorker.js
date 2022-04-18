@@ -35,13 +35,13 @@ function EtherscanRequestsWorker(remixPluginClient, followProxies) {
 	}
 	
 	this.runQueueJobs = async function() {
-	
-		this.updateState(EtherscanRequestsWorker.state.RUNNING_TASK);
 		
 		while(this.requestsQueue.length > 0) {
 		
 			let currentRequest = this.requestsQueue.pop();
-			
+
+			this.updateState(EtherscanRequestsWorker.state.RUNNING_TASK);
+
 			currentRequest.attemptsMade++;
 
 			let requestSuccess = false;
@@ -104,7 +104,6 @@ function EtherscanRequestsWorker(remixPluginClient, followProxies) {
 			
 			this.updateState(EtherscanRequestsWorker.state.RUNNING_BUT_SLEEPING);
 			await sleep(this.sleepTimeBetweenWebRequests);
-			this.updateState(EtherscanRequestsWorker.state.RUNNING_TASK);
 			
 		}
 		

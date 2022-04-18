@@ -14,37 +14,8 @@
 	<body>
 
 		<div class="container">
-			<div class="card mb-3 mt-2">
-				<div class="card-body">
-					<div class="row mb-3">
-						<div class="col-sm-12">
-							<h6>
-								Status
-							</h6> 
-							<div class="d-flex align-items-center">  
-								<small> 
-									Running
-								</small>  	
-								<div class="spinner-border ms-auto ml-3" style="width: 1.2rem; height: 1.2rem;" role="status" aria-hidden="true">
-								</div>	
-							</div>
-						</div>
-					</div>
-					<div class="row">
-						<div class="col-sm-12">
-							<h6>
-								Task 
-							</h6>  
-							<small> 
-								Waiting on API cooldown
-							</small>  		
-						</div>
-					</div>
-				</div>
-			</div>
-				
 
-			<h6 class="mb-3 ml-1 mt-1">
+			<h6 class="mb-3 ml-1 mt-2">
 				Import a Contract
 			</h6>
 
@@ -68,8 +39,7 @@
 				</div>
 			</div>
 
-
-			<h6 class="mb-3 ml-1 mt-1">Contracts for Import</h6>
+			<span id="injectAfterFirstRequest"></span>
 	
 			<div class="accordion" id="accordionExample">
 
@@ -109,9 +79,9 @@
 			// this is the plugin that the UI uses to make requests. i just attached it to the ui as the ui is acting
 			// like the window or document of the page.
 			// 
-			// client, network, apiKey, storageLocation, retryAttemptsOnFailure
+			//(remixClient, defaultNetwork, defaultAPIKey, defaultStorageLocation, defaultRetryAttempts, waitBetweenRequests, workerUICallback
 			ImportContractUI.plugin = new ImportEtherscanContractPlugin(client, ImportEtherscanContractPlugin.networks.ETHEREUM_MAINNET, "", "/etherscan/contracts", 3, 5000);
-																	//(remixClient, defaultNetwork, defaultAPIKey, defaultStorageLocation, defaultRetryAttempts, waitBetweenRequests, workerUICallback
+																	
 		</script>
 
 
