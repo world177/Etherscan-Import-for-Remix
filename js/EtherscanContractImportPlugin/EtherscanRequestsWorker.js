@@ -88,7 +88,7 @@ function EtherscanRequestsWorker(remixPluginClient, followProxies) {
 
 				if(currentRequest.contractRequest.isProxy() && this.followProxies) {
 				
-					let implRequest = new ContractRequest(currentRequest.contractRequest.getImplementationAddressForProxy());
+					let implRequest = new ContractRequest(currentRequest.contractRequest.getImplementationAddressForProxy(), currentRequest.contractRequest.network);
 					
 					// taking the callback function for ui updates from the first. (it's fine if it doesn't have one)
 					implRequest.setUICallback(currentRequest.contractRequest.UIUpdatesCallback);
