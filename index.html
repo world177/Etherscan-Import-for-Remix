@@ -48,8 +48,6 @@
 		</div>
 		
 		<script src="./js/remix/plugin/plugin_iframe.js"></script>
-		<script src="./js/remix/plugin/plugin_engine.js"></script>
-				<script src="./js/remix/plugin/plugin_engine_web.js"></script>
 
 		<script src="./js/EtherscanContractImportPlugin/ContractRequest.js"></script>
 		<script src="./js/EtherscanContractImportPlugin/EtherscanRequestsWorker.js"></script>
@@ -59,15 +57,7 @@
 		<script src="./js/EtherscanContractImportPlugin/Utility.js"></script>
 
 		<script>
-		
-		//http://localhost/remix-test/remix-live-gh-pages/?#activate=etherscan-import&call=etherscan-import//wow//i//can//see
-			// attempting to hack in the calls we want
-			window.addEventListener("message", (event) => {
-
-				console.log("iframe: " + JSON.stringify(event));
-
-			}, false);
-
+			
 			// the import tab is added to the page with javascript
 			window.addEventListener('load', function () {
 
