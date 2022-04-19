@@ -20,7 +20,7 @@ If Etherscan reports that a requested contract is a proxy, then **the plugin wil
 The format to complete this is 
 
 ```
-https://{IDE_Address}#activate={plugin_name}&call={plugin_name}//loadContract//{requested_address_list}/{network}
+https://{IDE_Address}#activate={plugin_name}&call={plugin_name}//loadContract//{requested_address_list}//{network}
 ```
 
 The official Remix client **does not include this plugin by default yet**, however, **it is included as a default plugin for the remix client at** 
