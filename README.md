@@ -2,15 +2,6 @@
 
 A plugin for the [Remix IDE](https://github.com/ethereum/remix-ide) that makes it easy to import contracts from [Etherscan](https://etherscan.io/) websites.
 
-
-# Pictures
-
-| Preview | |
-| ------ | ------ |
-| ![i1.png](img/import1.PNG) |  <table><tr><td  align="center">**Shows basic information about the requested contract**</td><td  align="center">**Supports API keys and other basic settings** </td></tr><tr><td  align="center">![i1.png](img/import2.PNG)</td><td align="center">![i1.png](img/import3.PNG)</td></tr><tr><td align="center">**Supports 19 Etherscan websites**</td><td align="center">**Keeps imported contracts sorted**</td></tr><tr><td align="center">![i1.png](img/import4.PNG)</td><td align="center">![i1.png](img/import5.PNG) </td></tr></table> |
-
-
-
 # Import with list
 
 Contracts can also be imported by using comma separated lists. As an example, the following contract list will work if just copied an pasted into plugin input for the **Contract Address**
@@ -65,3 +56,10 @@ In the latest commit, this file is ```app.0.23.1.1650320458854.js```. Inside thi
  _this.pluginsDirectory = 'https://raw.githubusercontent.com/ethereum/remix-plugins-directory/master/build/metadata.json';
 ```
 There is a simple format for defining plugins for Remix to automatically by default. You will need to define the plugin in a copy of that file, host it online, and set the file in the link mentioned. More information about this can be found at the official repository for the [Remix Plugins Directory](https://github.com/ethereum/remix-plugins-directory).
+
+
+# Pictures
+<div align="center">
+
+<table><tr><td  align="center"><b>Shows basic information about the requested contract</b></td><td  align="center"><b>Supports API keys and other basic settings</b> </td></tr><tr><td  align="center"> <img src="img/import2.PNG"></img></td><td align="center"> <img src="img/import3.PNG"></img></td></tr><tr><td align="center"><b>Supports 19 Etherscan websites</b></td><td align="center"><b>Keeps imported contracts sorted</b></td></tr><tr><td align="center"> <img src="img/import4.PNG"></img></td><td align="center"> <img src="img/import5.PNG"></img></td></tr></table>
+<img src="img/import1.PNG" height="700px"></img></div>
