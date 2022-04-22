@@ -12,6 +12,9 @@ function EtherscanRequestsWorker(remixPluginClient, followProxies) {
 	this.state = 0;
 	this.sleepTimeBetweenWebRequests = 5100;
 	this.followProxies = followProxies;
+	this.workerIsRunning = false;
+
+	this.lock = [true];
 	
 	this.UIUpdatesCallback = (dataForCallbackUpdates) => {};
 	
@@ -110,26 +113,48 @@ function EtherscanRequestsWorker(remixPluginClient, followProxies) {
 		this.updateState(EtherscanRequestsWorker.state.WAITING_FOR_TASK);
 	
 	}
-	
-	this.mainLoop = async function() {
-	
-		while(true) {
-		
-			if(this.hasQueueJobs()) {
-			
-				await this.runQueueJobs();
-			
-			}
-		
-			await sleep(200);
-		
-		}
-	
+
+	this.claimLock = function() {
+
+		return this.lock.pop();
+
+	}
+
+	this.freeLock = function() {
+
+		return this.lock.push(true);
+
 	}
 	
-	this.start = function() {
-	
-		return this.mainLoop();
+	this.start = async function() {
+
+		if(this.hasQueueJobs()) {
+
+		 	// this is better than the 200 ms loop 
+		 	//
+		 	// i really need to review javascript in depth
+		 	// because this is not only probably unnecessary since
+		 	// afaik javascript is single threaded by default,
+		 	// but i am also doubtful that this would even work
+		 	// correctly single there are atomic related objects
+		 	// for workers that run on different threads.
+			if(this.claimLock()) {
+
+				try {
+
+					await this.runQueueJobs();
+
+				} catch(e) {
+
+					console.log(e);
+
+				}
+
+				this.freeLock();
+
+			}
+
+		}
 	
 	}
 	
@@ -143,6 +168,8 @@ function EtherscanRequestsWorker(remixPluginClient, followProxies) {
 		job.attemptsMade = 0;
 		
 		this.requestsQueue.push(job);
+
+		this.start();
 	
 	}
 
