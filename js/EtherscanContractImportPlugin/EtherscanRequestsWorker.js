@@ -12,7 +12,6 @@ function EtherscanRequestsWorker(remixPluginClient, followProxies) {
 	this.state = 0;
 	this.sleepTimeBetweenWebRequests = 5100;
 	this.followProxies = followProxies;
-	this.workerIsRunning = false;
 
 	this.lock = [true];
 	
